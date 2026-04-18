@@ -396,11 +396,13 @@ body {
 }
 
 .credit {
-  margin-top: 48px; /* increase spacing */
+  margin-top: -40px; /* move it UP */
   font-size: 12px;
-  color: rgba(255, 255, 255, 0.5);
+  color: rgba(255, 255, 255, 0.6);
   text-align: center;
   letter-spacing: 0.5px;
+  position: relative;
+  z-index: 2; /* keep it above circle */
 }
 /* ============================================
    CHAT SCREEN
