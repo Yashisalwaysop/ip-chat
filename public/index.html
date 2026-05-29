@@ -1,24 +1,35 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
- <meta charset="UTF-8">
+  <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <link rel="manifest" href="/manifest.json">
 
   <!-- SEO -->
-  <meta name="description" content="Anonymous chat rooms with no accounts or tracking. Join instantly.">
+  <meta name="description" content="Anonymous chat rooms — no sign-up, no tracking, no logs. Pick a room ID, share it, and start talking in seconds.">
 
-  <!-- Open Graph (Discord embed) -->
-  <meta property="og:title" content="IP Chat — Anonymous Rooms ⚡">
-  <meta property="og:description" content="No accounts. No tracking. Just instant anonymous chat. • Created with ❤️ by Yash & Devy">
-  <meta property="og:image" content="https://ip-chat.onrender.com/preview.png">
-  <meta property="og:url" content="https://ip-chat.onrender.com">
+  <!-- Open Graph (Discord / link previews) -->
+  <meta property="og:site_name" content="IP-Chat">
+  <meta property="og:title" content="Anonymous Chat. No Sign-Up. Just Talk.">
+  <meta property="og:description" content="Instant private rooms with zero accounts and zero logs. Drop a room code to a friend — your conversation is already waiting.">
   <meta property="og:type" content="website">
+  <meta property="og:url" content="https://ip-chat.onrender.com">
+  <meta property="og:image" content="https://ip-chat.onrender.com/preview.png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="og:image:type" content="image/png">
 
-  <!-- Optional embed color -->
+  <!-- Twitter / Discord large image card -->
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Anonymous Chat. No Sign-Up. Just Talk.">
+  <meta name="twitter:description" content="Instant private rooms with zero accounts and zero logs. Drop a room code to a friend — your conversation is already waiting.">
+  <meta name="twitter:image" content="https://ip-chat.onrender.com/preview.png">
+
+  <!-- Discord embed accent color -->
   <meta name="theme-color" content="#0a0a0a">
 
-  <title>IP-Chat · Anonymous Rooms</title>
-<!-- Meta Tags Generated via https://www.opengraph.xyz/ -->
+  <title>IP-Chat — Anonymous Rooms, Instantly</title>
 
   <!-- Fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -159,6 +170,19 @@
               <path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
             </svg>
           </button>
+
+          <!-- Mute Toggle -->
+          <button class="sidebar-btn" title="Toggle sound" id="mute-toggle-btn">
+            <svg id="mute-icon-off" width="18" height="18" viewBox="0 0 24 24" fill="none" style="display:block;">
+              <path d="M11 5L6 9H2v6h4l5 4V5z" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+              <line x1="23" y1="9" x2="17" y2="15" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+              <line x1="17" y1="9" x2="23" y2="15" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+            </svg>
+            <svg id="mute-icon-on" width="18" height="18" viewBox="0 0 24 24" fill="none" style="display:none;">
+              <path d="M11 5L6 9H2v6h4l5 4V5z" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M19.07 4.93a10 10 0 010 14.14M15.54 8.46a5 5 0 010 7.07" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </button>
         </div>
 
         <div class="sidebar-bottom">
@@ -185,12 +209,27 @@
           <p class="visible-credit chat-credit">Made with love by Yash and Devy</p>
         </header>
 
+        <!-- Reconnect Banner -->
+        <div id="reconnect-banner" class="reconnect-banner">
+          <span class="reconnect-spinner"></span>
+          Reconnecting…
+        </div>
+
         <!-- Messages Area -->
-        <div id="messages" class="messages">
+        <div id="messages" class="messages" role="log" aria-live="polite">
           <div id="welcome-msg" class="welcome-msg">
             <div class="welcome-icon">🔐</div>
             <p>You're in a private room. Share the room ID with others to chat.</p>
           </div>
+        </div>
+
+        <!-- Users Panel (slide-in) -->
+        <div id="users-panel" class="users-panel" hidden>
+          <div class="users-panel-header">
+            <span class="users-panel-title">Online Users</span>
+            <button id="users-panel-close" class="users-panel-close" title="Close">&times;</button>
+          </div>
+          <div id="users-panel-list" class="users-panel-list"></div>
         </div>
 
         <!-- Typing Indicator -->
@@ -210,6 +249,7 @@
               rows="1"
               maxlength="2000"
             ></textarea>
+            <span id="char-counter" class="char-counter"></span>
             <button id="send-btn" class="send-btn" disabled>
               <svg width="18" height="18" viewBox="0 0 20 20" fill="none">
                 <path d="M3 10L17 3L10 17L9 11L3 10Z" fill="currentColor"/>
