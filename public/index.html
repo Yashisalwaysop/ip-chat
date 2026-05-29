@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -7,12 +8,14 @@
   <link rel="manifest" href="/manifest.json">
 
   <!-- SEO -->
-  <meta name="description" content="Anonymous chat rooms — no sign-up, no tracking, no logs. Pick a room ID, share it, and start talking in seconds.">
+  <meta name="description"
+    content="Anonymous chat rooms — no sign-up, no tracking, no logs. Pick a room ID, share it, and start talking in seconds.">
 
   <!-- Open Graph (Discord / link previews) -->
   <meta property="og:site_name" content="IP-Chat">
-  <meta property="og:title" content="Anonymous Chat. No Sign-Up. Just Talk.">
-  <meta property="og:description" content="Instant private rooms with zero accounts and zero logs. Drop a room code to a friend — your conversation is already waiting.">
+  <meta property="og:title" content="IP-Chat — Anonymous Chat Rooms. No Sign-Up. Just Talk.">
+  <meta property="og:description"
+    content="Instant private rooms with zero accounts and zero logs. Drop a room code to a friend — your conversation is already waiting.">
   <meta property="og:type" content="website">
   <meta property="og:url" content="https://ip-chat.onrender.com">
   <meta property="og:image" content="https://ip-chat.onrender.com/preview.png">
@@ -22,15 +25,15 @@
 
   <!-- Twitter / Discord large image card -->
   <meta name="twitter:card" content="summary_large_image">
-  <meta name="twitter:title" content="Anonymous Chat. No Sign-Up. Just Talk.">
-  <meta name="twitter:description" content="Instant private rooms with zero accounts and zero logs. Drop a room code to a friend — your conversation is already waiting.">
+  <meta name="twitter:title" content="IP-Chat — Anonymous Chat Rooms. No Sign-Up. Just Talk.">
+  <meta name="twitter:description"
+    content="Instant private rooms with zero accounts and zero logs. Drop a room code to a friend — your conversation is already waiting.">
   <meta name="twitter:image" content="https://ip-chat.onrender.com/preview.png">
 
   <!-- Discord embed accent color -->
   <meta name="theme-color" content="#0a0a0a">
 
-  <title>IP-Chat — Anonymous Rooms, Instantly</title>
-
+  <title>IP-Chat — Anonymous Chat Rooms. No Sign-Up. Just Talk.</title>
   <!-- Fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -39,6 +42,7 @@
   <!-- Styles -->
   <link rel="stylesheet" href="style.css">
 </head>
+
 <body>
   <!-- ===== PARTICLE CANVAS ===== -->
   <canvas id="particle-canvas"></canvas>
@@ -49,15 +53,15 @@
       <div class="logo-section">
         <div class="logo-icon">
           <svg width="36" height="36" viewBox="0 0 36 36" fill="none">
-            <circle cx="18" cy="18" r="14" stroke="rgba(255,255,255,0.25)" stroke-width="1.5" fill="none"/>
-            <circle cx="12" cy="14" r="2.5" fill="rgba(255,255,255,0.5)"/>
-            <circle cx="24" cy="14" r="2.5" fill="rgba(255,255,255,0.4)"/>
-            <circle cx="12" cy="24" r="2.5" fill="rgba(255,255,255,0.35)"/>
-            <circle cx="24" cy="24" r="2.5" fill="rgba(255,255,255,0.45)"/>
-            <line x1="14.5" y1="14" x2="21.5" y2="14" stroke="rgba(255,255,255,0.12)" stroke-width="1.2"/>
-            <line x1="14.5" y1="24" x2="21.5" y2="24" stroke="rgba(255,255,255,0.12)" stroke-width="1.2"/>
-            <line x1="12" y1="16.5" x2="12" y2="21.5" stroke="rgba(255,255,255,0.12)" stroke-width="1.2"/>
-            <line x1="24" y1="16.5" x2="24" y2="21.5" stroke="rgba(255,255,255,0.12)" stroke-width="1.2"/>
+            <circle cx="18" cy="18" r="14" stroke="rgba(255,255,255,0.25)" stroke-width="1.5" fill="none" />
+            <circle cx="12" cy="14" r="2.5" fill="rgba(255,255,255,0.5)" />
+            <circle cx="24" cy="14" r="2.5" fill="rgba(255,255,255,0.4)" />
+            <circle cx="12" cy="24" r="2.5" fill="rgba(255,255,255,0.35)" />
+            <circle cx="24" cy="24" r="2.5" fill="rgba(255,255,255,0.45)" />
+            <line x1="14.5" y1="14" x2="21.5" y2="14" stroke="rgba(255,255,255,0.12)" stroke-width="1.2" />
+            <line x1="14.5" y1="24" x2="21.5" y2="24" stroke="rgba(255,255,255,0.12)" stroke-width="1.2" />
+            <line x1="12" y1="16.5" x2="12" y2="21.5" stroke="rgba(255,255,255,0.12)" stroke-width="1.2" />
+            <line x1="24" y1="16.5" x2="24" y2="21.5" stroke="rgba(255,255,255,0.12)" stroke-width="1.2" />
           </svg>
         </div>
         <h1 class="logo-text">IP-Chat</h1>
@@ -76,13 +80,8 @@
             <label for="room-id-input">Room ID</label>
             <div class="input-wrapper">
               <span class="input-prefix">›</span>
-              <input
-                type="text"
-                id="room-id-input"
-                placeholder="e.g. 1.1.1.1 or 92.64.144.78"
-                spellcheck="false"
-                autocomplete="off"
-              >
+              <input type="text" id="room-id-input" placeholder="e.g. 1.1.1.1 or 92.64.144.78" spellcheck="false"
+                autocomplete="off">
               <span id="input-status" class="input-status"></span>
             </div>
             <p class="input-hint">Dot-separated numbers — your secret room code</p>
@@ -92,14 +91,8 @@
             <label for="nickname-input">Nickname <span class="optional">(optional)</span></label>
             <div class="input-wrapper">
               <span class="input-prefix">@</span>
-              <input
-                type="text"
-                id="nickname-input"
-                placeholder="anonymous"
-                spellcheck="false"
-                autocomplete="off"
-                maxlength="20"
-              >
+              <input type="text" id="nickname-input" placeholder="anonymous" spellcheck="false" autocomplete="off"
+                maxlength="20">
             </div>
           </div>
 
@@ -141,7 +134,8 @@
           <!-- Back / Home -->
           <button id="back-btn" class="sidebar-btn" title="Leave room">
             <svg width="18" height="18" viewBox="0 0 20 20" fill="none">
-              <path d="M12 4L6 10L12 16" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M12 4L6 10L12 16" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"
+                stroke-linejoin="round" />
             </svg>
           </button>
 
@@ -150,37 +144,44 @@
           <!-- Chat (active) -->
           <button class="sidebar-btn active" title="Chat">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-              <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z" stroke="currentColor"
+                stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" />
             </svg>
           </button>
 
           <!-- Copy Room ID -->
           <button id="copy-room-btn" class="sidebar-btn" title="Copy room ID">
             <svg width="16" height="16" viewBox="0 0 18 18" fill="none">
-              <rect x="6" y="6" width="10" height="10" rx="3" stroke="currentColor" stroke-width="1.5"/>
-              <path d="M12 6V4C12 2.89543 11.1046 2 10 2H4C2.89543 2 2 2.89543 2 4V10C2 11.1046 2.89543 12 4 12H6" stroke="currentColor" stroke-width="1.5"/>
+              <rect x="6" y="6" width="10" height="10" rx="3" stroke="currentColor" stroke-width="1.5" />
+              <path d="M12 6V4C12 2.89543 11.1046 2 10 2H4C2.89543 2 2 2.89543 2 4V10C2 11.1046 2.89543 12 4 12H6"
+                stroke="currentColor" stroke-width="1.5" />
             </svg>
           </button>
 
           <!-- Online Users -->
           <button class="sidebar-btn" title="Online users" id="users-sidebar-btn">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-              <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
-              <circle cx="9" cy="7" r="4" stroke="currentColor" stroke-width="1.6"/>
-              <path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2" stroke="currentColor" stroke-width="1.6"
+                stroke-linecap="round" stroke-linejoin="round" />
+              <circle cx="9" cy="7" r="4" stroke="currentColor" stroke-width="1.6" />
+              <path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75" stroke="currentColor" stroke-width="1.6"
+                stroke-linecap="round" stroke-linejoin="round" />
             </svg>
           </button>
 
           <!-- Mute Toggle -->
           <button class="sidebar-btn" title="Toggle sound" id="mute-toggle-btn">
             <svg id="mute-icon-off" width="18" height="18" viewBox="0 0 24 24" fill="none" style="display:block;">
-              <path d="M11 5L6 9H2v6h4l5 4V5z" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
-              <line x1="23" y1="9" x2="17" y2="15" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
-              <line x1="17" y1="9" x2="23" y2="15" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+              <path d="M11 5L6 9H2v6h4l5 4V5z" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"
+                stroke-linejoin="round" />
+              <line x1="23" y1="9" x2="17" y2="15" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" />
+              <line x1="17" y1="9" x2="23" y2="15" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" />
             </svg>
             <svg id="mute-icon-on" width="18" height="18" viewBox="0 0 24 24" fill="none" style="display:none;">
-              <path d="M11 5L6 9H2v6h4l5 4V5z" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
-              <path d="M19.07 4.93a10 10 0 010 14.14M15.54 8.46a5 5 0 010 7.07" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M11 5L6 9H2v6h4l5 4V5z" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"
+                stroke-linejoin="round" />
+              <path d="M19.07 4.93a10 10 0 010 14.14M15.54 8.46a5 5 0 010 7.07" stroke="currentColor" stroke-width="1.6"
+                stroke-linecap="round" stroke-linejoin="round" />
             </svg>
           </button>
         </div>
@@ -243,16 +244,11 @@
         <!-- Floating Input Bar -->
         <div class="message-input-area">
           <div class="message-input-wrapper">
-            <textarea
-              id="message-input"
-              placeholder="Type a message..."
-              rows="1"
-              maxlength="2000"
-            ></textarea>
+            <textarea id="message-input" placeholder="Type a message..." rows="1" maxlength="2000"></textarea>
             <span id="char-counter" class="char-counter"></span>
             <button id="send-btn" class="send-btn" disabled>
               <svg width="18" height="18" viewBox="0 0 20 20" fill="none">
-                <path d="M3 10L17 3L10 17L9 11L3 10Z" fill="currentColor"/>
+                <path d="M3 10L17 3L10 17L9 11L3 10Z" fill="currentColor" />
               </svg>
             </button>
           </div>
@@ -268,4 +264,5 @@
   <script src="/socket.io/socket.io.js"></script>
   <script src="app.js"></script>
 </body>
+
 </html>
