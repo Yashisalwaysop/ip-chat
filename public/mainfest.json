@@ -1,0 +1,10 @@
+{
+  "name": "IP-Chat",
+  "short_name": "IP-Chat",
+  "description": "Anonymous chat rooms with no accounts or tracking",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#000000",
+  "theme_color": "#0a0a0a",
+  "icons": []
+}
