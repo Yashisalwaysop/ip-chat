@@ -1,5 +1,5 @@
 /* ============================================
-   IP-CHAT — Client Application
+   IP-CHAT — Client Application (Production)
    ============================================ */
 
 (() => {
@@ -14,18 +14,32 @@
   const inputStatus = document.getElementById('input-status');
   const errorMsg    = document.getElementById('error-msg');
 
-  const backBtn       = document.getElementById('back-btn');
-  const roomIdText    = document.getElementById('room-id-text');
-  const userCount     = document.getElementById('user-count');
-  const messagesEl    = document.getElementById('messages');
-  const welcomeMsg    = document.getElementById('welcome-msg');
-  const typingInd     = document.getElementById('typing-indicator');
-  const typingText    = document.getElementById('typing-text');
-  const messageInput  = document.getElementById('message-input');
-  const sendBtn       = document.getElementById('send-btn');
-  const copyBtn       = document.getElementById('copy-room-btn');
-  const toast         = document.getElementById('toast');
-  const sidebarAvatar = document.getElementById('sidebar-user-avatar');
+  const backBtn          = document.getElementById('back-btn');
+  const roomIdText       = document.getElementById('room-id-text');
+  const userCount        = document.getElementById('user-count');
+  const messagesEl       = document.getElementById('messages');
+  const typingInd        = document.getElementById('typing-indicator');
+  const typingText       = document.getElementById('typing-text');
+  const messageInput     = document.getElementById('message-input');
+  const sendBtn          = document.getElementById('send-btn');
+  const copyBtn          = document.getElementById('copy-room-btn');
+  const toast            = document.getElementById('toast');
+  const sidebarAvatar    = document.getElementById('sidebar-user-avatar');
+  const reconnectBanner  = document.getElementById('reconnect-banner');
+  const usersPanel       = document.getElementById('users-panel');
+  const usersPanelList   = document.getElementById('users-panel-list');
+  const usersPanelClose  = document.getElementById('users-panel-close');
+  const usersSidebarBtn  = document.getElementById('users-sidebar-btn');
+  const muteToggleBtn    = document.getElementById('mute-toggle-btn');
+  const muteIconOff      = document.getElementById('mute-icon-off');
+  const muteIconOn       = document.getElementById('mute-icon-on');
+  const charCounter      = document.getElementById('char-counter');
+
+  // --- Constants ---
+  const MAX_MESSAGE_LENGTH = 2000;
+  const CHAR_WARN_THRESHOLD = 1800;
+  const CHAR_DANGER_THRESHOLD = 1950;
+  const ROOM_ID_REGEX = /^\d+(\.\d+)+$/;
 
   // --- State ---
   let socket = null;
@@ -33,15 +47,18 @@
   let myNickname = null;
   let typingTimeout = null;
   let isTyping = false;
+  let soundEnabled = false;
+  let unreadCount = 0;
+  let documentFocused = true;
+  let originalTitle = 'IP-Chat · Anonymous Rooms';
   const typingUsers = new Map();
-  const ROOM_ID_REGEX = /^\d+(\.\d+)+$/;
+  let onlineUsers = []; // current room user list
 
-  // --- Particle Background (Soft blue/purple) ---
+  // --- Particle Background ---
   function initParticles() {
     const canvas = document.getElementById('particle-canvas');
     const ctx = canvas.getContext('2d');
     let particles = [];
-    let animFrame;
 
     function resize() {
       canvas.width = window.innerWidth;
@@ -107,7 +124,7 @@
         p.draw();
       });
       drawLines();
-      animFrame = requestAnimationFrame(animate);
+      requestAnimationFrame(animate);
     }
 
     animate();
@@ -154,7 +171,7 @@
 
     // Connect to server
     if (!socket) {
-      socket = io();
+      socket = io({ reconnection: true, reconnectionAttempts: Infinity, reconnectionDelay: 1000 });
       setupSocketListeners();
     }
 
@@ -177,23 +194,47 @@
     socket.on('room-joined', (data) => {
       currentRoom = data.roomId;
       myNickname = data.nickname;
+      onlineUsers = data.users || [];
       showChatScreen(data);
+      hideReconnectBanner();
     });
 
     socket.on('new-message', (msg) => {
       appendMessage(msg);
       scrollToBottom();
+
+      // Unread badge when tab not focused
+      if (!documentFocused && msg.nickname !== myNickname) {
+        unreadCount++;
+        document.title = `(${unreadCount}) ${originalTitle}`;
+      }
+
+      // Sound beep for others' messages
+      if (soundEnabled && msg.nickname !== myNickname) {
+        playBeep();
+      }
     });
 
     socket.on('user-joined', (data) => {
       appendSystemMessage(`<span class="sys-highlight">${escapeHtml(data.nickname)}</span> joined the room`);
       updateUserCount(data.userCount);
+      if (data.users) {
+        onlineUsers = data.users;
+        renderUsersPanel();
+      }
       scrollToBottom();
     });
 
     socket.on('user-left', (data) => {
       appendSystemMessage(`<span class="sys-highlight">${escapeHtml(data.nickname)}</span> left the room`);
       updateUserCount(data.userCount);
+      if (data.users) {
+        onlineUsers = data.users;
+        renderUsersPanel();
+      }
+      // Remove from typing
+      typingUsers.delete(data.nickname);
+      updateTypingIndicator();
       scrollToBottom();
     });
 
@@ -211,15 +252,42 @@
       errorMsg.textContent = msg;
     });
 
+    socket.on('rate-limited', () => {
+      showToast('Slow down! You\'re sending messages too fast.');
+    });
+
+    socket.on('users-list', (data) => {
+      if (data.users) {
+        onlineUsers = data.users;
+        renderUsersPanel();
+      }
+    });
+
+    socket.on('message-reaction', (data) => {
+      applyReaction(data.messageId, data.emoji, data.count);
+    });
+
+    // --- Reconnection Flow ---
     socket.on('disconnect', () => {
-      appendSystemMessage('Connection lost. Reconnecting...');
+      showReconnectBanner();
     });
 
     socket.on('connect', () => {
-      if (currentRoom) {
+      hideReconnectBanner();
+      // Re-join the room on reconnect
+      if (currentRoom && myNickname) {
         socket.emit('join-room', { roomId: currentRoom, nickname: myNickname });
       }
     });
+  }
+
+  // --- Reconnect Banner ---
+  function showReconnectBanner() {
+    reconnectBanner.classList.add('visible');
+  }
+
+  function hideReconnectBanner() {
+    reconnectBanner.classList.remove('visible');
   }
 
   // --- Screen Transitions ---
@@ -255,6 +323,12 @@
       data.messages.forEach(msg => appendMessage(msg, false));
     }
 
+    // Populate users panel
+    if (data.users) {
+      onlineUsers = data.users;
+      renderUsersPanel();
+    }
+
     scrollToBottom();
     messageInput.focus();
   }
@@ -273,25 +347,26 @@
     currentRoom = null;
     myNickname = null;
     typingUsers.clear();
+    onlineUsers = [];
     roomInput.value = '';
     nickInput.value = '';
     inputStatus.className = 'input-status';
     inputStatus.textContent = '';
     joinBtn.disabled = true;
     errorMsg.textContent = '';
+    unreadCount = 0;
+    document.title = originalTitle;
+    hideUsersPanel();
   }
 
   backBtn.addEventListener('click', showHomeScreen);
 
   // --- Messages ---
   function appendMessage(msg, animate = true) {
-    // Remove welcome message if it's the first real message
-    const welcome = messagesEl.querySelector('.welcome-msg');
-    // Keep welcome; messages appear below it
-
     const isSelf = msg.nickname === myNickname;
     const div = document.createElement('div');
     div.className = `message-bubble${isSelf ? ' self' : ''}`;
+    div.setAttribute('data-msg-id', msg.id);
     if (!animate) div.style.animation = 'none';
 
     const time = new Date(msg.timestamp);
@@ -304,6 +379,20 @@
       </div>
       <div class="msg-text">${escapeHtml(msg.message)}</div>
     `;
+
+    // Apply existing reactions from history
+    if (msg.reactions && msg.reactions['❤️'] && msg.reactions['❤️'] > 0) {
+      const badge = createReactionBadge('❤️', msg.reactions['❤️']);
+      div.appendChild(badge);
+      div.style.position = 'relative';
+    }
+
+    // Double-click for reaction
+    div.addEventListener('dblclick', () => {
+      if (socket && currentRoom) {
+        socket.emit('react', { messageId: msg.id });
+      }
+    });
 
     messagesEl.appendChild(div);
   }
@@ -326,6 +415,30 @@
     countText.textContent = `${count} online`;
   }
 
+  // --- Reactions ---
+  function createReactionBadge(emoji, count) {
+    const badge = document.createElement('div');
+    badge.className = 'reaction-badge';
+    badge.textContent = `${emoji} ${count}`;
+    return badge;
+  }
+
+  function applyReaction(messageId, emoji, count) {
+    const bubble = messagesEl.querySelector(`[data-msg-id="${CSS.escape(messageId)}"]`);
+    if (!bubble) return;
+
+    bubble.style.position = 'relative';
+
+    // Update or create badge
+    let badge = bubble.querySelector('.reaction-badge');
+    if (badge) {
+      badge.textContent = `${emoji} ${count}`;
+    } else {
+      badge = createReactionBadge(emoji, count);
+      bubble.appendChild(badge);
+    }
+  }
+
   // --- Send Message ---
   function sendMessage() {
     const text = messageInput.value.trim();
@@ -335,6 +448,7 @@
     messageInput.value = '';
     messageInput.style.height = 'auto';
     sendBtn.disabled = true;
+    updateCharCounter();
 
     // Stop typing
     if (isTyping) {
@@ -360,6 +474,9 @@
     // Enable/disable send button
     sendBtn.disabled = !messageInput.value.trim();
 
+    // Character counter
+    updateCharCounter();
+
     // Typing indicator
     if (!isTyping && messageInput.value.trim()) {
       isTyping = true;
@@ -374,6 +491,23 @@
       }
     }, 2000);
   });
+
+  // --- Character Counter ---
+  function updateCharCounter() {
+    const len = messageInput.value.length;
+    if (len > CHAR_WARN_THRESHOLD) {
+      charCounter.textContent = `${len}/${MAX_MESSAGE_LENGTH}`;
+      charCounter.style.display = 'block';
+      if (len >= CHAR_DANGER_THRESHOLD) {
+        charCounter.classList.add('danger');
+      } else {
+        charCounter.classList.remove('danger');
+      }
+    } else {
+      charCounter.style.display = 'none';
+      charCounter.classList.remove('danger');
+    }
+  }
 
   // --- Typing Indicator ---
   function updateTypingIndicator() {
@@ -406,6 +540,118 @@
 
   // Periodically clean typing indicators
   setInterval(updateTypingIndicator, 2000);
+
+  // --- Users Panel ---
+  function renderUsersPanel() {
+    usersPanelList.innerHTML = '';
+    onlineUsers.forEach(name => {
+      const row = document.createElement('div');
+      row.className = 'users-panel-row';
+
+      const avatar = document.createElement('div');
+      avatar.className = 'users-panel-avatar';
+      avatar.textContent = name.charAt(0).toUpperCase();
+
+      const nick = document.createElement('span');
+      nick.className = 'users-panel-nick';
+      nick.textContent = escapeHtml(name);
+
+      if (name === myNickname) {
+        const youBadge = document.createElement('span');
+        youBadge.className = 'users-panel-you';
+        youBadge.textContent = '(you)';
+        nick.appendChild(youBadge);
+      }
+
+      row.appendChild(avatar);
+      row.appendChild(nick);
+      usersPanelList.appendChild(row);
+    });
+  }
+
+  function showUsersPanel() {
+    usersPanel.hidden = false;
+    // Trigger reflow for animation
+    void usersPanel.offsetWidth;
+    usersPanel.classList.add('open');
+    // Request fresh user list
+    if (socket) socket.emit('get-users');
+  }
+
+  function hideUsersPanel() {
+    usersPanel.classList.remove('open');
+    setTimeout(() => {
+      usersPanel.hidden = true;
+    }, 250);
+  }
+
+  usersSidebarBtn.addEventListener('click', () => {
+    if (usersPanel.classList.contains('open')) {
+      hideUsersPanel();
+    } else {
+      showUsersPanel();
+    }
+  });
+
+  usersPanelClose.addEventListener('click', hideUsersPanel);
+
+  // Close on outside click
+  document.addEventListener('click', (e) => {
+    if (usersPanel.classList.contains('open') &&
+        !usersPanel.contains(e.target) &&
+        e.target !== usersSidebarBtn &&
+        !usersSidebarBtn.contains(e.target)) {
+      hideUsersPanel();
+    }
+  });
+
+  // --- Sound Toggle ---
+  muteToggleBtn.addEventListener('click', () => {
+    soundEnabled = !soundEnabled;
+    if (soundEnabled) {
+      muteIconOff.style.display = 'none';
+      muteIconOn.style.display = 'block';
+      muteToggleBtn.classList.add('active');
+    } else {
+      muteIconOff.style.display = 'block';
+      muteIconOn.style.display = 'none';
+      muteToggleBtn.classList.remove('active');
+    }
+  });
+
+  function playBeep() {
+    try {
+      const ctx = new (window.AudioContext || window.webkitAudioContext)();
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(880, ctx.currentTime);
+      gain.gain.setValueAtTime(0.08, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.08);
+
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.start(ctx.currentTime);
+      osc.stop(ctx.currentTime + 0.08);
+
+      // Cleanup
+      osc.onended = () => ctx.close();
+    } catch (_) {
+      // Web Audio not available — silently ignore
+    }
+  }
+
+  // --- Unread Badge (tab focus) ---
+  window.addEventListener('focus', () => {
+    documentFocused = true;
+    unreadCount = 0;
+    document.title = originalTitle;
+  });
+
+  window.addEventListener('blur', () => {
+    documentFocused = false;
+  });
 
   // --- Copy Room ID ---
   copyBtn.addEventListener('click', () => {
