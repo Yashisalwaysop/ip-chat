@@ -30,6 +30,29 @@ const io = new Server(server, {
 app.use(express.static(path.join(__dirname, 'public')));
 
 /* ============================================
+   ROUTES
+   ============================================ */
+// Landing page
+app.get('/', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'landing.html'));
+});
+
+// Home page (join card)
+app.get('/home', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'index.html'));
+});
+
+// Room page
+app.get('/room/:roomId', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'room.html'));
+});
+
+// About page
+app.get('/about', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'about.html'));
+});
+
+/* ============================================
    IN-MEMORY STORAGE
    ============================================ */
 // rooms = { roomId: { messages: [], users: Map<socketId, {nickname, joinedAt}>, cleanupTimer: null } }
