@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <link rel="manifest" href="/manifest.json">
+
+  <!-- SEO -->
+  <meta name="description"
+    content="Anonymous chat rooms — no sign-up, no tracking, no logs. Pick a room code, share it, and start talking in seconds.">
+
+  <!-- Open Graph -->
+  <meta property="og:site_name" content="IP-Chat">
+  <meta property="og:title" content="IP-Chat — Chat that doesn't know who you are.">
+  <meta property="og:description"
+    content="Instant private rooms with zero accounts and zero logs. Drop a room code to a friend — your conversation is already waiting.">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://ip-chat.onrender.com">
+
+  <!-- Twitter / Discord -->
+  <meta name="twitter:card" content="summary">
+  <meta name="twitter:title" content="IP-Chat — Chat that doesn't know who you are.">
+  <meta name="twitter:description"
+    content="Instant private rooms with zero accounts and zero logs. Drop a room code to a friend.">
+
+  <meta name="theme-color" content="#0a0a0a">
+
+  <title>IP-Chat — Anonymous Chat Rooms. No Sign-Up. Just Talk.</title>
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap"
+    rel="stylesheet">
+
+  <!-- Styles -->
+  <link rel="stylesheet" href="landing.css">
+</head>
+
+<body>
+  <!-- ===== PARTICLE CANVAS ===== -->
+  <canvas id="particle-canvas"></canvas>
+
+  <!-- ===== NAVIGATION ===== -->
+  <nav class="nav-bar" id="nav-bar">
+    <a href="/" class="nav-logo" id="nav-logo-link">
+      <div class="nav-logo-icon">
+        <svg width="20" height="20" viewBox="0 0 36 36" fill="none">
+          <circle cx="18" cy="18" r="14" stroke="rgba(255,255,255,0.25)" stroke-width="1.5" fill="none" />
+          <circle cx="12" cy="14" r="2.5" fill="rgba(255,255,255,0.5)" />
+          <circle cx="24" cy="14" r="2.5" fill="rgba(255,255,255,0.4)" />
+          <circle cx="12" cy="24" r="2.5" fill="rgba(255,255,255,0.35)" />
+          <circle cx="24" cy="24" r="2.5" fill="rgba(255,255,255,0.45)" />
+          <line x1="14.5" y1="14" x2="21.5" y2="14" stroke="rgba(255,255,255,0.12)" stroke-width="1.2" />
+          <line x1="14.5" y1="24" x2="21.5" y2="24" stroke="rgba(255,255,255,0.12)" stroke-width="1.2" />
+          <line x1="12" y1="16.5" x2="12" y2="21.5" stroke="rgba(255,255,255,0.12)" stroke-width="1.2" />
+          <line x1="24" y1="16.5" x2="24" y2="21.5" stroke="rgba(255,255,255,0.12)" stroke-width="1.2" />
+        </svg>
+      </div>
+      <span class="nav-logo-text">IP-Chat</span>
+    </a>
+    <div class="nav-links">
+      <a href="/home" class="nav-link" id="nav-home-link">Open a Room</a>
+      <a href="/about" class="nav-link" id="nav-about-link">How it Works</a>
+    </div>
+  </nav>
+
+  <div class="page-container">
+
+    <!-- ===== HERO SECTION ===== -->
+    <section class="hero" id="hero-section">
+      <div class="hero-badge">
+        <span class="hero-badge-dot"></span>
+        End-to-end anonymous · No sign-up required
+      </div>
+
+      <h1 class="hero-title">
+        Chat that doesn't know <span class="gradient-word">who you are.</span>
+      </h1>
+
+      <p class="hero-subtitle">
+        Disposable rooms, zero accounts, zero logs. Pick a room code, share it with anyone, and start talking — instantly.
+      </p>
+
+      <div class="hero-cta-group">
+        <a href="/home" class="cta-primary" id="cta-open-room">
+          <span>Open a Room</span>
+          <span class="cta-arrow">→</span>
+        </a>
+        <a href="/about" class="cta-ghost" id="cta-how-it-works">
+          <span>How it works</span>
+        </a>
+      </div>
+
+      <div class="hero-scroll">
+        <div class="scroll-line"></div>
+      </div>
+    </section>
+
+    <!-- ===== FEATURES SECTION ===== -->
+    <section class="features-section" id="features-section">
+      <span class="section-label">Why IP-Chat</span>
+      <h2 class="section-title">Built for privacy, not profiles.</h2>
+      <p class="section-subtitle">No databases. No cookies. No breadcrumbs. Just a room code and a conversation.</p>
+
+      <div class="features-grid">
+        <div class="feature-card fade-up fade-up-1" id="feature-no-account">
+          <div class="feature-card-icon">🔒</div>
+          <h3 class="feature-card-title">No Account</h3>
+          <p class="feature-card-desc">No email, no password, no phone number. Just pick a nickname and talk.</p>
+        </div>
+
+        <div class="feature-card fade-up fade-up-2" id="feature-no-logs">
+          <div class="feature-card-icon">👻</div>
+          <h3 class="feature-card-title">No Logs</h3>
+          <p class="feature-card-desc">Messages live in memory only. When the room empties, everything vanishes.</p>
+        </div>
+
+        <div class="feature-card fade-up fade-up-3" id="feature-no-traces">
+          <div class="feature-card-icon">💨</div>
+          <h3 class="feature-card-title">No Traces</h3>
+          <p class="feature-card-desc">No cookies, no analytics, no tracking pixels. Your conversation was never here.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== HOW IT WORKS SECTION ===== -->
+    <section class="how-section" id="how-section">
+      <span class="section-label">Get started</span>
+      <h2 class="section-title">Three steps. That's it.</h2>
+      <p class="section-subtitle">From zero to chatting in under 10 seconds.</p>
+
+      <div class="steps-container">
+        <div class="step-card fade-up fade-up-1" id="step-1">
+          <div class="step-number">1</div>
+          <h3 class="step-title">Pick a code</h3>
+          <p class="step-desc">Choose any dot-separated number as your secret room code — like an IP address.</p>
+        </div>
+
+        <div class="step-card fade-up fade-up-2" id="step-2">
+          <div class="step-number">2</div>
+          <h3 class="step-title">Share the link</h3>
+          <p class="step-desc">Send the room code to anyone you want to chat with. No invites, no waiting.</p>
+        </div>
+
+        <div class="step-card fade-up fade-up-3" id="step-3">
+          <div class="step-number">3</div>
+          <h3 class="step-title">Start talking</h3>
+          <p class="step-desc">Everyone with the code joins the same room. Real-time, anonymous, ephemeral.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== FOOTER ===== -->
+    <footer class="site-footer" id="site-footer">
+      <p class="footer-credit">Made with <span class="heart">♥</span> by Yash & Devy</p>
+      <div class="footer-links">
+        <a href="/home" class="footer-link" id="footer-home-link">Home</a>
+        <span class="footer-sep"></span>
+        <a href="/about" class="footer-link" id="footer-about-link">How it Works</a>
+        <span class="footer-sep"></span>
+        <a href="#" class="footer-link" id="footer-github-link">GitHub</a>
+      </div>
+    </footer>
+  </div>
+
+  <script>
+    /* ============================================
+       PARTICLE BACKGROUND — Landing Page
+       ============================================ */
+    (function initParticles() {
+      const canvas = document.getElementById('particle-canvas');
+      const ctx = canvas.getContext('2d');
+      let particles = [];
+
+      function resize() {
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+      }
+
+      resize();
+      window.addEventListener('resize', resize);
+
+      class Particle {
+        constructor() { this.reset(); }
+        reset() {
+          this.x = Math.random() * canvas.width;
+          this.y = Math.random() * canvas.height;
+          this.vx = (Math.random() - 0.5) * 0.2;
+          this.vy = (Math.random() - 0.5) * 0.2;
+          this.radius = Math.random() * 1 + 0.3;
+          this.opacity = Math.random() * 0.2 + 0.03;
+        }
+        update() {
+          this.x += this.vx;
+          this.y += this.vy;
+          if (this.x < 0 || this.x > canvas.width) this.vx *= -1;
+          if (this.y < 0 || this.y > canvas.height) this.vy *= -1;
+        }
+        draw() {
+          ctx.beginPath();
+          ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+          ctx.fillStyle = `rgba(255, 255, 255, ${this.opacity})`;
+          ctx.fill();
+        }
+      }
+
+      const count = Math.min(50, Math.floor((canvas.width * canvas.height) / 25000));
+      for (let i = 0; i < count; i++) particles.push(new Particle());
+
+      function drawLines() {
+        for (let i = 0; i < particles.length; i++) {
+          for (let j = i + 1; j < particles.length; j++) {
+            const dx = particles[i].x - particles[j].x;
+            const dy = particles[i].y - particles[j].y;
+            const dist = Math.sqrt(dx * dx + dy * dy);
+            if (dist < 100) {
+              ctx.beginPath();
+              ctx.moveTo(particles[i].x, particles[i].y);
+              ctx.lineTo(particles[j].x, particles[j].y);
+              ctx.strokeStyle = `rgba(255, 255, 255, ${0.03 * (1 - dist / 100)})`;
+              ctx.lineWidth = 0.5;
+              ctx.stroke();
+            }
+          }
+        }
+      }
+
+      function animate() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        particles.forEach(p => { p.update(); p.draw(); });
+        drawLines();
+        requestAnimationFrame(animate);
+      }
+
+      animate();
+    })();
+  </script>
+</body>
+
+</html>
