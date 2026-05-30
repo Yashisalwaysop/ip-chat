@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <link rel="manifest" href="/manifest.json">
+
+  <!-- SEO -->
+  <meta name="description"
+    content="Learn how IP-Chat works — anonymous chat rooms with no sign-up, no tracking, no logs. Your privacy, by design.">
+
+  <!-- Open Graph -->
+  <meta property="og:site_name" content="IP-Chat">
+  <meta property="og:title" content="How IP-Chat Works — Privacy by Design">
+  <meta property="og:description"
+    content="No accounts, no logs, no traces. Understand the privacy-first architecture of IP-Chat.">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://ip-chat.onrender.com/about">
+
+  <meta name="theme-color" content="#0a0a0a">
+
+  <title>About — IP-Chat</title>
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap"
+    rel="stylesheet">
+
+  <!-- Styles -->
+  <link rel="stylesheet" href="landing.css">
+</head>
+
+<body>
+  <!-- ===== PARTICLE CANVAS ===== -->
+  <canvas id="particle-canvas"></canvas>
+
+  <!-- ===== NAVIGATION ===== -->
+  <nav class="nav-bar" id="nav-bar">
+    <a href="/" class="nav-logo" id="nav-logo-link">
+      <div class="nav-logo-icon">
+        <svg width="20" height="20" viewBox="0 0 36 36" fill="none">
+          <circle cx="18" cy="18" r="14" stroke="rgba(255,255,255,0.25)" stroke-width="1.5" fill="none" />
+          <circle cx="12" cy="14" r="2.5" fill="rgba(255,255,255,0.5)" />
+          <circle cx="24" cy="14" r="2.5" fill="rgba(255,255,255,0.4)" />
+          <circle cx="12" cy="24" r="2.5" fill="rgba(255,255,255,0.35)" />
+          <circle cx="24" cy="24" r="2.5" fill="rgba(255,255,255,0.45)" />
+          <line x1="14.5" y1="14" x2="21.5" y2="14" stroke="rgba(255,255,255,0.12)" stroke-width="1.2" />
+          <line x1="14.5" y1="24" x2="21.5" y2="24" stroke="rgba(255,255,255,0.12)" stroke-width="1.2" />
+          <line x1="12" y1="16.5" x2="12" y2="21.5" stroke="rgba(255,255,255,0.12)" stroke-width="1.2" />
+          <line x1="24" y1="16.5" x2="24" y2="21.5" stroke="rgba(255,255,255,0.12)" stroke-width="1.2" />
+        </svg>
+      </div>
+      <span class="nav-logo-text">IP-Chat</span>
+    </a>
+    <div class="nav-links">
+      <a href="/home" class="nav-link" id="nav-home-link">Open a Room</a>
+      <a href="/about" class="nav-link active" id="nav-about-link">How it Works</a>
+    </div>
+  </nav>
+
+  <div class="page-container">
+
+    <!-- ===== ABOUT HERO ===== -->
+    <section class="about-hero" id="about-hero">
+      <span class="section-label fade-up">About</span>
+      <h1 class="about-hero-title fade-up fade-up-1">How IP-Chat works</h1>
+      <p class="about-hero-subtitle fade-up fade-up-2">
+        A real-time anonymous chat built on one simple idea — your identity is none of our business.
+        No accounts, no databases, no history. Just conversations that exist in the moment.
+      </p>
+    </section>
+
+    <!-- ===== ABOUT CONTENT ===== -->
+    <div class="about-content">
+
+      <!-- What is a room code? -->
+      <div class="about-section fade-up" id="about-room-code">
+        <span class="about-section-label">Concept</span>
+        <h2 class="about-section-title">What is a room code?</h2>
+        <p class="about-section-text">
+          Room codes in IP-Chat look like IP addresses — dot-separated numbers like <code>42.100.7.3</code> or
+          <code>192.168.1.1</code>. But they're not real IPs. They're just memorable, shareable codes
+          that anyone can make up on the spot.
+        </p>
+        <p class="about-section-text">
+          Think of it like making up a secret handshake. You pick any combination of numbers separated by dots,
+          share it with the people you want to talk to, and everyone who enters the same code ends up
+          in the same room. Simple as that.
+        </p>
+      </div>
+
+      <!-- Privacy -->
+      <div class="about-section fade-up" id="about-privacy">
+        <span class="about-section-label">Privacy</span>
+        <h2 class="about-section-title">Your conversation was never here.</h2>
+        <p class="about-section-text">
+          IP-Chat doesn't ask for your email. It doesn't set cookies. It doesn't write to a database.
+          Messages exist only in server memory — RAM, not disk — and only while someone is in the room.
+        </p>
+        <p class="about-section-text">
+          When the last person leaves a room, a short grace period counts down. After that, the room
+          and its entire message history are permanently deleted from memory. There's no archive, no backup,
+          no way to recover it. That's the point.
+        </p>
+      </div>
+
+      <!-- 3 Step Visual -->
+      <div class="about-section fade-up" id="about-steps">
+        <span class="about-section-label">Get started</span>
+        <h2 class="about-section-title">Three steps to anonymous chat.</h2>
+
+        <div class="about-steps">
+          <div class="about-step" id="about-step-1">
+            <div class="about-step-num">Step 1</div>
+            <div class="about-step-icon">🔑</div>
+            <div class="about-step-label">Pick a code</div>
+          </div>
+          <div class="about-step" id="about-step-2">
+            <div class="about-step-num">Step 2</div>
+            <div class="about-step-icon">🔗</div>
+            <div class="about-step-label">Share it</div>
+          </div>
+          <div class="about-step" id="about-step-3">
+            <div class="about-step-num">Step 3</div>
+            <div class="about-step-icon">💬</div>
+            <div class="about-step-label">Chat</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- CTA -->
+      <div class="about-cta fade-up" id="about-cta">
+        <h2 class="about-cta-title">Ready to try it?</h2>
+        <p class="about-cta-text">No sign-up. No download. Just pick a room code and start talking.</p>
+        <a href="/home" class="cta-primary" id="about-cta-btn">
+          <span>Open a Room</span>
+          <span class="cta-arrow">→</span>
+        </a>
+      </div>
+    </div>
+
+    <!-- ===== FOOTER ===== -->
+    <footer class="site-footer" id="site-footer">
+      <p class="footer-credit">Made with <span class="heart">♥</span> by Yash & Devy</p>
+      <div class="footer-links">
+        <a href="/home" class="footer-link" id="footer-home-link">Home</a>
+        <span class="footer-sep"></span>
+        <a href="/about" class="footer-link" id="footer-about-link">How it Works</a>
+        <span class="footer-sep"></span>
+        <a href="#" class="footer-link" id="footer-github-link">GitHub</a>
+      </div>
+    </footer>
+  </div>
+
+  <script>
+    /* ============================================
+       PARTICLE BACKGROUND — About Page
+       ============================================ */
+    (function initParticles() {
+      const canvas = document.getElementById('particle-canvas');
+      const ctx = canvas.getContext('2d');
+      let particles = [];
+
+      function resize() {
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+      }
+
+      resize();
+      window.addEventListener('resize', resize);
+
+      class Particle {
+        constructor() { this.reset(); }
+        reset() {
+          this.x = Math.random() * canvas.width;
+          this.y = Math.random() * canvas.height;
+          this.vx = (Math.random() - 0.5) * 0.2;
+          this.vy = (Math.random() - 0.5) * 0.2;
+          this.radius = Math.random() * 1 + 0.3;
+          this.opacity = Math.random() * 0.2 + 0.03;
+        }
+        update() {
+          this.x += this.vx;
+          this.y += this.vy;
+          if (this.x < 0 || this.x > canvas.width) this.vx *= -1;
+          if (this.y < 0 || this.y > canvas.height) this.vy *= -1;
+        }
+        draw() {
+          ctx.beginPath();
+          ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+          ctx.fillStyle = `rgba(255, 255, 255, ${this.opacity})`;
+          ctx.fill();
+        }
+      }
+
+      const count = Math.min(50, Math.floor((canvas.width * canvas.height) / 25000));
+      for (let i = 0; i < count; i++) particles.push(new Particle());
+
+      function drawLines() {
+        for (let i = 0; i < particles.length; i++) {
+          for (let j = i + 1; j < particles.length; j++) {
+            const dx = particles[i].x - particles[j].x;
+            const dy = particles[i].y - particles[j].y;
+            const dist = Math.sqrt(dx * dx + dy * dy);
+            if (dist < 100) {
+              ctx.beginPath();
+              ctx.moveTo(particles[i].x, particles[i].y);
+              ctx.lineTo(particles[j].x, particles[j].y);
+              ctx.strokeStyle = `rgba(255, 255, 255, ${0.03 * (1 - dist / 100)})`;
+              ctx.lineWidth = 0.5;
+              ctx.stroke();
+            }
+          }
+        }
+      }
+
+      function animate() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        particles.forEach(p => { p.update(); p.draw(); });
+        drawLines();
+        requestAnimationFrame(animate);
+      }
+
+      animate();
+    })();
+  </script>
+</body>
+
+</html>
