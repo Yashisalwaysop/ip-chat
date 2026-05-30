@@ -1,39 +1,11 @@
 /* ============================================
    IP-CHAT — Client Application (Production)
+   Supports:  /home  (index.html — join card)
+              /room/:roomId  (room.html — direct room)
    ============================================ */
 
 (() => {
   'use strict';
-
-  // --- DOM Elements ---
-  const homeScreen  = document.getElementById('home-screen');
-  const chatScreen  = document.getElementById('chat-screen');
-  const roomInput   = document.getElementById('room-id-input');
-  const nickInput   = document.getElementById('nickname-input');
-  const joinBtn     = document.getElementById('join-btn');
-  const inputStatus = document.getElementById('input-status');
-  const errorMsg    = document.getElementById('error-msg');
-
-  const backBtn          = document.getElementById('back-btn');
-  const roomIdText       = document.getElementById('room-id-text');
-  const userCount        = document.getElementById('user-count');
-  const messagesEl       = document.getElementById('messages');
-  const typingInd        = document.getElementById('typing-indicator');
-  const typingText       = document.getElementById('typing-text');
-  const messageInput     = document.getElementById('message-input');
-  const sendBtn          = document.getElementById('send-btn');
-  const copyBtn          = document.getElementById('copy-room-btn');
-  const toast            = document.getElementById('toast');
-  const sidebarAvatar    = document.getElementById('sidebar-user-avatar');
-  const reconnectBanner  = document.getElementById('reconnect-banner');
-  const usersPanel       = document.getElementById('users-panel');
-  const usersPanelList   = document.getElementById('users-panel-list');
-  const usersPanelClose  = document.getElementById('users-panel-close');
-  const usersSidebarBtn  = document.getElementById('users-sidebar-btn');
-  const muteToggleBtn    = document.getElementById('mute-toggle-btn');
-  const muteIconOff      = document.getElementById('mute-icon-off');
-  const muteIconOn       = document.getElementById('mute-icon-on');
-  const charCounter      = document.getElementById('char-counter');
 
   // --- Constants ---
   const MAX_MESSAGE_LENGTH = 2000;
@@ -41,7 +13,7 @@
   const CHAR_DANGER_THRESHOLD = 1950;
   const ROOM_ID_REGEX = /^\d+(\.\d+)+$/;
 
-  // --- State ---
+  // --- Shared State ---
   let socket = null;
   let currentRoom = null;
   let myNickname = null;
@@ -52,11 +24,16 @@
   let documentFocused = true;
   let originalTitle = 'IP-Chat · Anonymous Rooms';
   const typingUsers = new Map();
-  let onlineUsers = []; // current room user list
+  let onlineUsers = [];
+
+  // --- Detect which page we're on ---
+  const isRoomPage = window.location.pathname.startsWith('/room/');
+  const isHomePage = !isRoomPage;
 
   // --- Particle Background ---
   function initParticles() {
     const canvas = document.getElementById('particle-canvas');
+    if (!canvas) return;
     const ctx = canvas.getContext('2d');
     let particles = [];
 
@@ -132,64 +109,10 @@
 
   initParticles();
 
-  // --- Validation ---
-  function validateRoomId(value) {
-    return ROOM_ID_REGEX.test(value.trim());
-  }
+  // ============================================
+  // SHARED SOCKET EVENT HANDLERS
+  // ============================================
 
-  roomInput.addEventListener('input', () => {
-    const val = roomInput.value.trim();
-    errorMsg.textContent = '';
-
-    if (!val) {
-      inputStatus.className = 'input-status';
-      inputStatus.textContent = '';
-      joinBtn.disabled = true;
-      return;
-    }
-
-    if (validateRoomId(val)) {
-      inputStatus.className = 'input-status valid';
-      inputStatus.textContent = '✓';
-      joinBtn.disabled = false;
-    } else {
-      inputStatus.className = 'input-status invalid';
-      inputStatus.textContent = '✗';
-      joinBtn.disabled = true;
-    }
-  });
-
-  // --- Join Room ---
-  function joinRoom() {
-    const roomId = roomInput.value.trim();
-    const nickname = nickInput.value.trim();
-
-    if (!validateRoomId(roomId)) {
-      errorMsg.textContent = 'Invalid format. Use dot-separated numbers (e.g. 42.100.7.3)';
-      return;
-    }
-
-    // Connect to server
-    if (!socket) {
-      socket = io({ reconnection: true, reconnectionAttempts: Infinity, reconnectionDelay: 1000 });
-      setupSocketListeners();
-    }
-
-    socket.emit('join-room', { roomId, nickname });
-  }
-
-  joinBtn.addEventListener('click', joinRoom);
-
-  // Enter key on inputs
-  roomInput.addEventListener('keydown', (e) => {
-    if (e.key === 'Enter' && !joinBtn.disabled) joinRoom();
-  });
-
-  nickInput.addEventListener('keydown', (e) => {
-    if (e.key === 'Enter' && !joinBtn.disabled) joinRoom();
-  });
-
-  // --- Socket Listeners ---
   function setupSocketListeners() {
     socket.on('room-joined', (data) => {
       currentRoom = data.roomId;
@@ -203,13 +126,11 @@
       appendMessage(msg);
       scrollToBottom();
 
-      // Unread badge when tab not focused
       if (!documentFocused && msg.nickname !== myNickname) {
         unreadCount++;
         document.title = `(${unreadCount}) ${originalTitle}`;
       }
 
-      // Sound beep for others' messages
       if (soundEnabled && msg.nickname !== myNickname) {
         playBeep();
       }
@@ -232,7 +153,6 @@
         onlineUsers = data.users;
         renderUsersPanel();
       }
-      // Remove from typing
       typingUsers.delete(data.nickname);
       updateTypingIndicator();
       scrollToBottom();
@@ -249,7 +169,9 @@
     });
 
     socket.on('error-msg', (msg) => {
-      errorMsg.textContent = msg;
+      // Show on whichever error element exists
+      const errorEl = document.getElementById('error-msg') || document.getElementById('nick-error');
+      if (errorEl) errorEl.textContent = msg;
     });
 
     socket.on('rate-limited', () => {
@@ -274,39 +196,61 @@
 
     socket.on('connect', () => {
       hideReconnectBanner();
-      // Re-join the room on reconnect
       if (currentRoom && myNickname) {
         socket.emit('join-room', { roomId: currentRoom, nickname: myNickname });
       }
     });
   }
 
-  // --- Reconnect Banner ---
+  // ============================================
+  // SHARED UI FUNCTIONS
+  // ============================================
+
   function showReconnectBanner() {
-    reconnectBanner.classList.add('visible');
+    const banner = document.getElementById('reconnect-banner');
+    if (banner) banner.classList.add('visible');
   }
 
   function hideReconnectBanner() {
-    reconnectBanner.classList.remove('visible');
+    const banner = document.getElementById('reconnect-banner');
+    if (banner) banner.classList.remove('visible');
   }
 
-  // --- Screen Transitions ---
   function showChatScreen(data) {
-    homeScreen.classList.remove('active');
+    const chatScreen = document.getElementById('chat-screen');
+    const messagesEl = document.getElementById('messages');
+    const roomIdText = document.getElementById('room-id-text');
+    const sidebarAvatar = document.getElementById('sidebar-user-avatar');
+    const messageInput = document.getElementById('message-input');
+
+    // For home page, hide home screen first
+    if (isHomePage) {
+      const homeScreen = document.getElementById('home-screen');
+      if (homeScreen) homeScreen.classList.remove('active');
+    }
+
+    // For room page, hide nickname overlay
+    if (isRoomPage) {
+      const overlay = document.getElementById('nick-overlay');
+      if (overlay) overlay.style.display = 'none';
+    }
+
     setTimeout(() => {
       chatScreen.classList.add('active');
     }, 100);
 
-    roomIdText.textContent = data.roomId;
+    if (roomIdText) roomIdText.textContent = data.roomId;
     updateUserCount(data.userCount);
 
     // Set sidebar avatar initial
     const initial = data.nickname.charAt(0).toUpperCase();
-    sidebarAvatar.textContent = initial;
-    sidebarAvatar.title = data.nickname;
+    if (sidebarAvatar) {
+      sidebarAvatar.textContent = initial;
+      sidebarAvatar.title = data.nickname;
+    }
 
     // Clear previous messages
-    messagesEl.innerHTML = '';
+    if (messagesEl) messagesEl.innerHTML = '';
 
     // Add welcome message
     const welcomeDiv = document.createElement('div');
@@ -316,7 +260,7 @@
       <p>You're connected as <strong style="color: #fff">${escapeHtml(data.nickname)}</strong><br>
       Share room ID <strong style="color: rgba(255,255,255,0.7); font-weight: 600">${escapeHtml(data.roomId)}</strong> to invite others.</p>
     `;
-    messagesEl.appendChild(welcomeDiv);
+    if (messagesEl) messagesEl.appendChild(welcomeDiv);
 
     // Load history
     if (data.messages && data.messages.length > 0) {
@@ -330,39 +274,13 @@
     }
 
     scrollToBottom();
-    messageInput.focus();
+    if (messageInput) messageInput.focus();
   }
 
-  function showHomeScreen() {
-    chatScreen.classList.remove('active');
-    setTimeout(() => {
-      homeScreen.classList.add('active');
-    }, 100);
-
-    if (socket) {
-      socket.disconnect();
-      socket = null;
-    }
-
-    currentRoom = null;
-    myNickname = null;
-    typingUsers.clear();
-    onlineUsers = [];
-    roomInput.value = '';
-    nickInput.value = '';
-    inputStatus.className = 'input-status';
-    inputStatus.textContent = '';
-    joinBtn.disabled = true;
-    errorMsg.textContent = '';
-    unreadCount = 0;
-    document.title = originalTitle;
-    hideUsersPanel();
-  }
-
-  backBtn.addEventListener('click', showHomeScreen);
-
-  // --- Messages ---
   function appendMessage(msg, animate = true) {
+    const messagesEl = document.getElementById('messages');
+    if (!messagesEl) return;
+
     const isSelf = msg.nickname === myNickname;
     const div = document.createElement('div');
     div.className = `message-bubble${isSelf ? ' self' : ''}`;
@@ -398,6 +316,8 @@
   }
 
   function appendSystemMessage(html) {
+    const messagesEl = document.getElementById('messages');
+    if (!messagesEl) return;
     const div = document.createElement('div');
     div.className = 'system-msg';
     div.innerHTML = html;
@@ -405,14 +325,18 @@
   }
 
   function scrollToBottom() {
+    const messagesEl = document.getElementById('messages');
+    if (!messagesEl) return;
     requestAnimationFrame(() => {
       messagesEl.scrollTop = messagesEl.scrollHeight;
     });
   }
 
   function updateUserCount(count) {
+    const userCount = document.getElementById('user-count');
+    if (!userCount) return;
     const countText = userCount.querySelector('.count-text');
-    countText.textContent = `${count} online`;
+    if (countText) countText.textContent = `${count} online`;
   }
 
   // --- Reactions ---
@@ -424,12 +348,13 @@
   }
 
   function applyReaction(messageId, emoji, count) {
+    const messagesEl = document.getElementById('messages');
+    if (!messagesEl) return;
     const bubble = messagesEl.querySelector(`[data-msg-id="${CSS.escape(messageId)}"]`);
     if (!bubble) return;
 
     bubble.style.position = 'relative';
 
-    // Update or create badge
     let badge = bubble.querySelector('.reaction-badge');
     if (badge) {
       badge.textContent = `${emoji} ${count}`;
@@ -441,59 +366,31 @@
 
   // --- Send Message ---
   function sendMessage() {
+    const messageInput = document.getElementById('message-input');
+    const sendBtn = document.getElementById('send-btn');
+    if (!messageInput) return;
+
     const text = messageInput.value.trim();
     if (!text || !socket || !currentRoom) return;
 
     socket.emit('send-message', { message: text });
     messageInput.value = '';
     messageInput.style.height = 'auto';
-    sendBtn.disabled = true;
+    if (sendBtn) sendBtn.disabled = true;
     updateCharCounter();
 
-    // Stop typing
     if (isTyping) {
       socket.emit('stop-typing');
       isTyping = false;
     }
   }
 
-  sendBtn.addEventListener('click', sendMessage);
-
-  messageInput.addEventListener('keydown', (e) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
-      sendMessage();
-    }
-  });
-
-  messageInput.addEventListener('input', () => {
-    // Auto-resize textarea
-    messageInput.style.height = 'auto';
-    messageInput.style.height = Math.min(messageInput.scrollHeight, 120) + 'px';
-
-    // Enable/disable send button
-    sendBtn.disabled = !messageInput.value.trim();
-
-    // Character counter
-    updateCharCounter();
-
-    // Typing indicator
-    if (!isTyping && messageInput.value.trim()) {
-      isTyping = true;
-      socket.emit('typing');
-    }
-
-    clearTimeout(typingTimeout);
-    typingTimeout = setTimeout(() => {
-      if (isTyping) {
-        isTyping = false;
-        socket.emit('stop-typing');
-      }
-    }, 2000);
-  });
-
   // --- Character Counter ---
   function updateCharCounter() {
+    const messageInput = document.getElementById('message-input');
+    const charCounter = document.getElementById('char-counter');
+    if (!messageInput || !charCounter) return;
+
     const len = messageInput.value.length;
     if (len > CHAR_WARN_THRESHOLD) {
       charCounter.textContent = `${len}/${MAX_MESSAGE_LENGTH}`;
@@ -511,7 +408,10 @@
 
   // --- Typing Indicator ---
   function updateTypingIndicator() {
-    // Clean stale entries (older than 3 seconds)
+    const typingInd = document.getElementById('typing-indicator');
+    const typingText = document.getElementById('typing-text');
+    if (!typingInd || !typingText) return;
+
     const now = Date.now();
     for (const [name, time] of typingUsers) {
       if (now - time > 3000) {
@@ -519,7 +419,6 @@
       }
     }
 
-    // Filter out self
     const others = [...typingUsers.keys()].filter(n => n !== myNickname);
 
     if (others.length === 0) {
@@ -538,11 +437,13 @@
     }
   }
 
-  // Periodically clean typing indicators
   setInterval(updateTypingIndicator, 2000);
 
   // --- Users Panel ---
   function renderUsersPanel() {
+    const usersPanelList = document.getElementById('users-panel-list');
+    if (!usersPanelList) return;
+
     usersPanelList.innerHTML = '';
     onlineUsers.forEach(name => {
       const row = document.createElement('div');
@@ -570,55 +471,24 @@
   }
 
   function showUsersPanel() {
+    const usersPanel = document.getElementById('users-panel');
+    if (!usersPanel) return;
     usersPanel.hidden = false;
-    // Trigger reflow for animation
     void usersPanel.offsetWidth;
     usersPanel.classList.add('open');
-    // Request fresh user list
     if (socket) socket.emit('get-users');
   }
 
   function hideUsersPanel() {
+    const usersPanel = document.getElementById('users-panel');
+    if (!usersPanel) return;
     usersPanel.classList.remove('open');
     setTimeout(() => {
       usersPanel.hidden = true;
     }, 250);
   }
 
-  usersSidebarBtn.addEventListener('click', () => {
-    if (usersPanel.classList.contains('open')) {
-      hideUsersPanel();
-    } else {
-      showUsersPanel();
-    }
-  });
-
-  usersPanelClose.addEventListener('click', hideUsersPanel);
-
-  // Close on outside click
-  document.addEventListener('click', (e) => {
-    if (usersPanel.classList.contains('open') &&
-        !usersPanel.contains(e.target) &&
-        e.target !== usersSidebarBtn &&
-        !usersSidebarBtn.contains(e.target)) {
-      hideUsersPanel();
-    }
-  });
-
-  // --- Sound Toggle ---
-  muteToggleBtn.addEventListener('click', () => {
-    soundEnabled = !soundEnabled;
-    if (soundEnabled) {
-      muteIconOff.style.display = 'none';
-      muteIconOn.style.display = 'block';
-      muteToggleBtn.classList.add('active');
-    } else {
-      muteIconOff.style.display = 'block';
-      muteIconOn.style.display = 'none';
-      muteToggleBtn.classList.remove('active');
-    }
-  });
-
+  // --- Sound ---
   function playBeep() {
     try {
       const ctx = new (window.AudioContext || window.webkitAudioContext)();
@@ -635,36 +505,16 @@
       osc.start(ctx.currentTime);
       osc.stop(ctx.currentTime + 0.08);
 
-      // Cleanup
       osc.onended = () => ctx.close();
     } catch (_) {
-      // Web Audio not available — silently ignore
+      // Web Audio not available
     }
   }
 
-  // --- Unread Badge (tab focus) ---
-  window.addEventListener('focus', () => {
-    documentFocused = true;
-    unreadCount = 0;
-    document.title = originalTitle;
-  });
-
-  window.addEventListener('blur', () => {
-    documentFocused = false;
-  });
-
-  // --- Copy Room ID ---
-  copyBtn.addEventListener('click', () => {
-    if (!currentRoom) return;
-    navigator.clipboard.writeText(currentRoom).then(() => {
-      showToast('Room ID copied to clipboard!');
-    }).catch(() => {
-      showToast('Failed to copy');
-    });
-  });
-
   // --- Toast ---
   function showToast(msg) {
+    const toast = document.getElementById('toast');
+    if (!toast) return;
     toast.textContent = msg;
     toast.classList.remove('hidden');
     toast.classList.add('show');
@@ -680,6 +530,305 @@
     const div = document.createElement('div');
     div.textContent = str;
     return div.innerHTML;
+  }
+
+  // --- Unread Badge (tab focus) ---
+  window.addEventListener('focus', () => {
+    documentFocused = true;
+    unreadCount = 0;
+    document.title = originalTitle;
+  });
+
+  window.addEventListener('blur', () => {
+    documentFocused = false;
+  });
+
+  // ============================================
+  // SHARED CHAT UI BINDING
+  // (called once chat elements exist on screen)
+  // ============================================
+  function bindChatUI() {
+    const sendBtn = document.getElementById('send-btn');
+    const messageInput = document.getElementById('message-input');
+    const backBtn = document.getElementById('back-btn');
+    const copyBtn = document.getElementById('copy-room-btn');
+    const usersSidebarBtn = document.getElementById('users-sidebar-btn');
+    const usersPanelClose = document.getElementById('users-panel-close');
+    const muteToggleBtn = document.getElementById('mute-toggle-btn');
+    const muteIconOff = document.getElementById('mute-icon-off');
+    const muteIconOn = document.getElementById('mute-icon-on');
+
+    if (sendBtn) sendBtn.addEventListener('click', sendMessage);
+
+    if (messageInput) {
+      messageInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' && !e.shiftKey) {
+          e.preventDefault();
+          sendMessage();
+        }
+      });
+
+      messageInput.addEventListener('input', () => {
+        messageInput.style.height = 'auto';
+        messageInput.style.height = Math.min(messageInput.scrollHeight, 120) + 'px';
+
+        const sendBtn2 = document.getElementById('send-btn');
+        if (sendBtn2) sendBtn2.disabled = !messageInput.value.trim();
+
+        updateCharCounter();
+
+        if (!isTyping && messageInput.value.trim()) {
+          isTyping = true;
+          if (socket) socket.emit('typing');
+        }
+
+        clearTimeout(typingTimeout);
+        typingTimeout = setTimeout(() => {
+          if (isTyping) {
+            isTyping = false;
+            if (socket) socket.emit('stop-typing');
+          }
+        }, 2000);
+      });
+    }
+
+    if (backBtn) {
+      backBtn.addEventListener('click', () => {
+        if (isRoomPage) {
+          // Navigate to /home
+          window.location.href = '/home';
+        } else {
+          showHomeScreen();
+        }
+      });
+    }
+
+    if (copyBtn) {
+      copyBtn.addEventListener('click', () => {
+        if (!currentRoom) return;
+        navigator.clipboard.writeText(currentRoom).then(() => {
+          showToast('Room ID copied to clipboard!');
+        }).catch(() => {
+          showToast('Failed to copy');
+        });
+      });
+    }
+
+    if (usersSidebarBtn) {
+      usersSidebarBtn.addEventListener('click', () => {
+        const usersPanel = document.getElementById('users-panel');
+        if (usersPanel && usersPanel.classList.contains('open')) {
+          hideUsersPanel();
+        } else {
+          showUsersPanel();
+        }
+      });
+    }
+
+    if (usersPanelClose) {
+      usersPanelClose.addEventListener('click', hideUsersPanel);
+    }
+
+    // Close users panel on outside click
+    document.addEventListener('click', (e) => {
+      const usersPanel = document.getElementById('users-panel');
+      const usersSidebarBtn2 = document.getElementById('users-sidebar-btn');
+      if (usersPanel && usersPanel.classList.contains('open') &&
+          !usersPanel.contains(e.target) &&
+          e.target !== usersSidebarBtn2 &&
+          !(usersSidebarBtn2 && usersSidebarBtn2.contains(e.target))) {
+        hideUsersPanel();
+      }
+    });
+
+    if (muteToggleBtn) {
+      muteToggleBtn.addEventListener('click', () => {
+        soundEnabled = !soundEnabled;
+        if (soundEnabled) {
+          if (muteIconOff) muteIconOff.style.display = 'none';
+          if (muteIconOn) muteIconOn.style.display = 'block';
+          muteToggleBtn.classList.add('active');
+        } else {
+          if (muteIconOff) muteIconOff.style.display = 'block';
+          if (muteIconOn) muteIconOn.style.display = 'none';
+          muteToggleBtn.classList.remove('active');
+        }
+      });
+    }
+  }
+
+  // ============================================
+  // PAGE 1: HOME PAGE (/home — index.html)
+  // ============================================
+  function initHomePage() {
+    const homeScreen  = document.getElementById('home-screen');
+    const roomInput   = document.getElementById('room-id-input');
+    const nickInput   = document.getElementById('nickname-input');
+    const joinBtn     = document.getElementById('join-btn');
+    const inputStatus = document.getElementById('input-status');
+    const errorMsg    = document.getElementById('error-msg');
+
+    if (!homeScreen || !roomInput || !joinBtn) return;
+
+    function validateRoomId(value) {
+      return ROOM_ID_REGEX.test(value.trim());
+    }
+
+    roomInput.addEventListener('input', () => {
+      const val = roomInput.value.trim();
+      if (errorMsg) errorMsg.textContent = '';
+
+      if (!val) {
+        inputStatus.className = 'input-status';
+        inputStatus.textContent = '';
+        joinBtn.disabled = true;
+        return;
+      }
+
+      if (validateRoomId(val)) {
+        inputStatus.className = 'input-status valid';
+        inputStatus.textContent = '✓';
+        joinBtn.disabled = false;
+      } else {
+        inputStatus.className = 'input-status invalid';
+        inputStatus.textContent = '✗';
+        joinBtn.disabled = true;
+      }
+    });
+
+    function joinRoom() {
+      const roomId = roomInput.value.trim();
+      const nickname = nickInput ? nickInput.value.trim() : '';
+
+      if (!validateRoomId(roomId)) {
+        if (errorMsg) errorMsg.textContent = 'Invalid format. Use dot-separated numbers (e.g. 42.100.7.3)';
+        return;
+      }
+
+      if (!socket) {
+        socket = io({ reconnection: true, reconnectionAttempts: Infinity, reconnectionDelay: 1000 });
+        setupSocketListeners();
+      }
+
+      socket.emit('join-room', { roomId, nickname });
+    }
+
+    joinBtn.addEventListener('click', joinRoom);
+
+    roomInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' && !joinBtn.disabled) joinRoom();
+    });
+
+    if (nickInput) {
+      nickInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' && !joinBtn.disabled) joinRoom();
+      });
+    }
+
+    // Bind chat UI for when they join
+    bindChatUI();
+  }
+
+  // Show home screen (used when backing out of chat on home page)
+  function showHomeScreen() {
+    const chatScreen = document.getElementById('chat-screen');
+    const homeScreen = document.getElementById('home-screen');
+    const roomInput = document.getElementById('room-id-input');
+    const nickInput = document.getElementById('nickname-input');
+    const inputStatus = document.getElementById('input-status');
+    const joinBtn = document.getElementById('join-btn');
+    const errorMsg = document.getElementById('error-msg');
+
+    if (chatScreen) chatScreen.classList.remove('active');
+    setTimeout(() => {
+      if (homeScreen) homeScreen.classList.add('active');
+    }, 100);
+
+    if (socket) {
+      socket.disconnect();
+      socket = null;
+    }
+
+    currentRoom = null;
+    myNickname = null;
+    typingUsers.clear();
+    onlineUsers = [];
+    if (roomInput) roomInput.value = '';
+    if (nickInput) nickInput.value = '';
+    if (inputStatus) {
+      inputStatus.className = 'input-status';
+      inputStatus.textContent = '';
+    }
+    if (joinBtn) joinBtn.disabled = true;
+    if (errorMsg) errorMsg.textContent = '';
+    unreadCount = 0;
+    document.title = originalTitle;
+    hideUsersPanel();
+  }
+
+  // ============================================
+  // PAGE 2: ROOM PAGE (/room/:roomId — room.html)
+  // ============================================
+  function initRoomPage() {
+    // Extract room ID from URL
+    const pathParts = window.location.pathname.split('/room/');
+    const roomId = pathParts[1] ? decodeURIComponent(pathParts[1]) : '';
+
+    // Validate room ID format
+    if (!ROOM_ID_REGEX.test(roomId)) {
+      window.location.href = '/home';
+      return;
+    }
+
+    // Update page title
+    originalTitle = `IP-Chat · Room ${roomId}`;
+    document.title = originalTitle;
+
+    // Show room code in the modal
+    const nickRoomCode = document.getElementById('nick-room-code');
+    if (nickRoomCode) nickRoomCode.textContent = roomId;
+
+    // Nickname modal elements
+    const nickInput = document.getElementById('nick-input');
+    const nickJoinBtn = document.getElementById('nick-join-btn');
+    const nickError = document.getElementById('nick-error');
+
+    function joinWithNickname() {
+      const nickname = nickInput ? nickInput.value.trim() : '';
+
+      // Connect socket
+      if (!socket) {
+        socket = io({ reconnection: true, reconnectionAttempts: Infinity, reconnectionDelay: 1000 });
+        setupSocketListeners();
+      }
+
+      socket.emit('join-room', { roomId, nickname });
+    }
+
+    if (nickJoinBtn) {
+      nickJoinBtn.addEventListener('click', joinWithNickname);
+    }
+
+    if (nickInput) {
+      nickInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') joinWithNickname();
+      });
+
+      // Auto-focus nickname input
+      setTimeout(() => nickInput.focus(), 300);
+    }
+
+    // Bind chat UI
+    bindChatUI();
+  }
+
+  // ============================================
+  // INIT — Route to correct page handler
+  // ============================================
+  if (isRoomPage) {
+    initRoomPage();
+  } else {
+    initHomePage();
   }
 
 })();
