@@ -1,1 +1,215 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <link rel="manifest" href="/manifest.json">
+
+  <!-- SEO -->
+  <meta name="description"
+    content="Anonymous chat room — no sign-up, no tracking, no logs. Real-time private conversations.">
+
+  <!-- Open Graph -->
+  <meta property="og:site_name" content="IP-Chat">
+  <meta property="og:title" content="IP-Chat — Anonymous Room">
+  <meta property="og:description"
+    content="Join an anonymous chat room — no accounts, no logs, just real-time conversation.">
+  <meta property="og:type" content="website">
+
+  <meta name="theme-color" content="#0a0a0a">
+
+  <title>IP-Chat · Room</title>
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+  <!-- Styles -->
+  <link rel="stylesheet" href="/style.css">
+  <link rel="stylesheet" href="/landing.css">
+</head>
+
+<body>
+  <!-- ===== PARTICLE CANVAS ===== -->
+  <canvas id="particle-canvas"></canvas>
+
+  <!-- ===== NICKNAME MODAL OVERLAY ===== -->
+  <div id="nick-overlay" class="nick-overlay">
+    <div class="nick-modal" id="nick-modal">
+      <div class="nick-modal-header">
+        <span class="nick-modal-dot"></span>
+        <span class="nick-modal-dot"></span>
+        <span class="nick-modal-dot"></span>
+        <span class="nick-modal-title">Join Room</span>
+      </div>
+      <div class="nick-modal-body">
+        <div class="nick-room-info">
+          <span class="nick-room-label">Entering Room</span>
+          <span class="nick-room-code" id="nick-room-code">—</span>
+        </div>
+
+        <div class="input-group">
+          <label for="nick-input">Nickname <span class="optional" style="font-weight:400;color:rgba(255,255,255,0.25);text-transform:none;font-size:0.7rem">(optional)</span></label>
+          <div class="input-wrapper">
+            <span class="input-prefix">@</span>
+            <input type="text" id="nick-input" placeholder="anonymous" spellcheck="false" autocomplete="off"
+              maxlength="20">
+          </div>
+        </div>
+
+        <button id="nick-join-btn" class="nick-join-btn">
+          <span class="btn-text">Join Room</span>
+          <span class="btn-icon">→</span>
+        </button>
+
+        <div id="nick-error" class="nick-error"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== CHAT SCREEN ===== -->
+  <div id="chat-screen" class="screen">
+    <div class="chat-layout">
+
+      <!-- Left Sidebar -->
+      <aside class="sidebar">
+        <div class="sidebar-top">
+          <!-- Back / Home -->
+          <button id="back-btn" class="sidebar-btn" title="Leave room">
+            <svg width="18" height="18" viewBox="0 0 20 20" fill="none">
+              <path d="M12 4L6 10L12 16" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"
+                stroke-linejoin="round" />
+            </svg>
+          </button>
+
+          <div class="sidebar-divider"></div>
+
+          <!-- Chat (active) -->
+          <button class="sidebar-btn active" title="Chat">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+              <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z" stroke="currentColor"
+                stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" />
+            </svg>
+          </button>
+
+          <!-- Copy Room ID -->
+          <button id="copy-room-btn" class="sidebar-btn" title="Copy room ID">
+            <svg width="16" height="16" viewBox="0 0 18 18" fill="none">
+              <rect x="6" y="6" width="10" height="10" rx="3" stroke="currentColor" stroke-width="1.5" />
+              <path d="M12 6V4C12 2.89543 11.1046 2 10 2H4C2.89543 2 2 2.89543 2 4V10C2 11.1046 2.89543 12 4 12H6"
+                stroke="currentColor" stroke-width="1.5" />
+            </svg>
+          </button>
+
+          <!-- Online Users -->
+          <button class="sidebar-btn" title="Online users" id="users-sidebar-btn">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+              <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2" stroke="currentColor" stroke-width="1.6"
+                stroke-linecap="round" stroke-linejoin="round" />
+              <circle cx="9" cy="7" r="4" stroke="currentColor" stroke-width="1.6" />
+              <path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75" stroke="currentColor" stroke-width="1.6"
+                stroke-linecap="round" stroke-linejoin="round" />
+            </svg>
+          </button>
+
+          <!-- Mute Toggle -->
+          <button class="sidebar-btn" title="Toggle sound" id="mute-toggle-btn">
+            <svg id="mute-icon-off" width="18" height="18" viewBox="0 0 24 24" fill="none" style="display:block;">
+              <path d="M11 5L6 9H2v6h4l5 4V5z" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"
+                stroke-linejoin="round" />
+              <line x1="23" y1="9" x2="17" y2="15" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" />
+              <line x1="17" y1="9" x2="23" y2="15" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" />
+            </svg>
+            <svg id="mute-icon-on" width="18" height="18" viewBox="0 0 24 24" fill="none" style="display:none;">
+              <path d="M11 5L6 9H2v6h4l5 4V5z" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"
+                stroke-linejoin="round" />
+              <path d="M19.07 4.93a10 10 0 010 14.14M15.54 8.46a5 5 0 010 7.07" stroke="currentColor" stroke-width="1.6"
+                stroke-linecap="round" stroke-linejoin="round" />
+            </svg>
+          </button>
+        </div>
+
+        <div class="sidebar-bottom">
+          <div class="sidebar-divider"></div>
+          <!-- User Avatar -->
+          <div class="sidebar-avatar" id="sidebar-user-avatar" title="You">?</div>
+        </div>
+      </aside>
+
+      <!-- Main Chat Area -->
+      <div class="chat-main">
+        <!-- Top Bar -->
+        <header class="chat-header">
+          <div class="room-info">
+            <div class="room-id-display">
+              <span class="room-label">ROOM</span>
+              <span id="room-id-text" class="room-id-value"></span>
+            </div>
+            <div id="user-count" class="user-count">
+              <span class="pulse-dot"></span>
+              <span class="count-text">0 online</span>
+            </div>
+          </div>
+          <p class="visible-credit chat-credit">Made with love by Yash and Devy</p>
+        </header>
+
+        <!-- Reconnect Banner -->
+        <div id="reconnect-banner" class="reconnect-banner">
+          <span class="reconnect-spinner"></span>
+          Reconnecting…
+        </div>
+
+        <!-- Messages Area -->
+        <div id="messages" class="messages" role="log" aria-live="polite">
+          <div id="welcome-msg" class="welcome-msg">
+            <div class="welcome-icon">🔐</div>
+            <p>You're in a private room. Share the room ID with others to chat.</p>
+          </div>
+        </div>
+
+        <!-- Users Panel (slide-in) -->
+        <div id="users-panel" class="users-panel" hidden>
+          <div class="users-panel-header">
+            <span class="users-panel-title">Online Users</span>
+            <button id="users-panel-close" class="users-panel-close" title="Close">&times;</button>
+          </div>
+          <div id="users-panel-list" class="users-panel-list"></div>
+        </div>
+
+        <!-- Typing Indicator -->
+        <div id="typing-indicator" class="typing-indicator hidden">
+          <div class="typing-dots">
+            <span></span><span></span><span></span>
+          </div>
+          <span id="typing-text" class="typing-text"></span>
+        </div>
+
+        <!-- Floating Input Bar -->
+        <div class="message-input-area">
+          <div class="message-input-wrapper">
+            <textarea id="message-input" placeholder="Type a message..." rows="1" maxlength="2000"></textarea>
+            <span id="char-counter" class="char-counter"></span>
+            <button id="send-btn" class="send-btn" disabled>
+              <svg width="18" height="18" viewBox="0 0 20 20" fill="none">
+                <path d="M3 10L17 3L10 17L9 11L3 10Z" fill="currentColor" />
+              </svg>
+            </button>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Toast -->
+  <div id="toast" class="toast hidden"></div>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="/app.js"></script>
+</body>
+
+</html>
 
