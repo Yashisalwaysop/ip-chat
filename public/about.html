@@ -19,14 +19,14 @@
   <meta property="og:type" content="website">
   <meta property="og:url" content="https://ip-chat.onrender.com/about">
 
-  <meta name="theme-color" content="#0a0a0a">
+  <meta name="theme-color" content="#050508">
 
   <title>About — IP-Chat</title>
 
   <!-- Fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap"
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=Syne:wght@500;600;700;800&family=Playfair+Display:ital,wght@0,700;1,700&family=JetBrains+Mono:wght@400;500&display=swap"
     rel="stylesheet">
 
   <!-- Styles -->
@@ -37,7 +37,7 @@
   <!-- ===== PARTICLE CANVAS ===== -->
   <canvas id="particle-canvas"></canvas>
 
-  <!-- ===== NAVIGATION ===== -->
+  <!-- ===== NAVIGATION — Floating Pill ===== -->
   <nav class="nav-bar" id="nav-bar">
     <a href="/" class="nav-logo" id="nav-logo-link">
       <div class="nav-logo-icon">
@@ -155,18 +155,19 @@
     </footer>
   </div>
 
+  <!-- ===== PARTICLE + VORTEX BACKGROUND ===== -->
   <script>
-    /* ============================================
-       PARTICLE BACKGROUND — About Page
-       ============================================ */
     (function initParticles() {
       const canvas = document.getElementById('particle-canvas');
       const ctx = canvas.getContext('2d');
       let particles = [];
+      let cx, cy;
 
       function resize() {
         canvas.width = window.innerWidth;
         canvas.height = window.innerHeight;
+        cx = canvas.width / 2;
+        cy = canvas.height / 2;
       }
 
       resize();
@@ -177,39 +178,52 @@
         reset() {
           this.x = Math.random() * canvas.width;
           this.y = Math.random() * canvas.height;
-          this.vx = (Math.random() - 0.5) * 0.2;
-          this.vy = (Math.random() - 0.5) * 0.2;
-          this.radius = Math.random() * 1 + 0.3;
-          this.opacity = Math.random() * 0.2 + 0.03;
+          this.vx = (Math.random() - 0.5) * 0.15;
+          this.vy = (Math.random() - 0.5) * 0.15;
+          this.radius = Math.random() * 1.2 + 0.2;
+          this.opacity = Math.random() * 0.25 + 0.03;
         }
         update() {
+          var dx = cx - this.x;
+          var dy = cy - this.y;
+          var dist = Math.sqrt(dx * dx + dy * dy);
+          var maxDist = Math.max(canvas.width, canvas.height) * 0.6;
+          if (dist < maxDist && dist > 20) {
+            var force = 0.00003 * (1 - dist / maxDist);
+            this.vx += (-dy * force + dx * force * 0.3);
+            this.vy += (dx * force + dy * force * 0.3);
+          }
+          this.vx *= 0.999;
+          this.vy *= 0.999;
           this.x += this.vx;
           this.y += this.vy;
-          if (this.x < 0 || this.x > canvas.width) this.vx *= -1;
-          if (this.y < 0 || this.y > canvas.height) this.vy *= -1;
+          if (this.x < -10) this.x = canvas.width + 10;
+          if (this.x > canvas.width + 10) this.x = -10;
+          if (this.y < -10) this.y = canvas.height + 10;
+          if (this.y > canvas.height + 10) this.y = -10;
         }
         draw() {
           ctx.beginPath();
           ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
-          ctx.fillStyle = `rgba(255, 255, 255, ${this.opacity})`;
+          ctx.fillStyle = 'rgba(255, 255, 255, ' + this.opacity + ')';
           ctx.fill();
         }
       }
 
-      const count = Math.min(50, Math.floor((canvas.width * canvas.height) / 25000));
-      for (let i = 0; i < count; i++) particles.push(new Particle());
+      var count = Math.min(80, Math.floor((canvas.width * canvas.height) / 15000));
+      for (var i = 0; i < count; i++) particles.push(new Particle());
 
       function drawLines() {
-        for (let i = 0; i < particles.length; i++) {
-          for (let j = i + 1; j < particles.length; j++) {
-            const dx = particles[i].x - particles[j].x;
-            const dy = particles[i].y - particles[j].y;
-            const dist = Math.sqrt(dx * dx + dy * dy);
-            if (dist < 100) {
+        for (var i = 0; i < particles.length; i++) {
+          for (var j = i + 1; j < particles.length; j++) {
+            var dx = particles[i].x - particles[j].x;
+            var dy = particles[i].y - particles[j].y;
+            var dist = Math.sqrt(dx * dx + dy * dy);
+            if (dist < 120) {
               ctx.beginPath();
               ctx.moveTo(particles[i].x, particles[i].y);
               ctx.lineTo(particles[j].x, particles[j].y);
-              ctx.strokeStyle = `rgba(255, 255, 255, ${0.03 * (1 - dist / 100)})`;
+              ctx.strokeStyle = 'rgba(255, 255, 255, ' + (0.03 * (1 - dist / 120)) + ')';
               ctx.lineWidth = 0.5;
               ctx.stroke();
             }
@@ -217,8 +231,24 @@
         }
       }
 
+      function drawOrbs() {
+        var grad1 = ctx.createRadialGradient(cx, cy, 0, cx, cy, canvas.width * 0.4);
+        grad1.addColorStop(0, 'rgba(30, 20, 80, 0.4)');
+        grad1.addColorStop(0.5, 'rgba(20, 12, 60, 0.15)');
+        grad1.addColorStop(1, 'rgba(5, 5, 8, 0)');
+        ctx.fillStyle = grad1;
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        var grad2 = ctx.createRadialGradient(cx * 1.4, cy * 0.6, 0, cx * 1.4, cy * 0.6, canvas.width * 0.3);
+        grad2.addColorStop(0, 'rgba(15, 10, 50, 0.25)');
+        grad2.addColorStop(1, 'rgba(5, 5, 8, 0)');
+        ctx.fillStyle = grad2;
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+      }
+
       function animate() {
         ctx.clearRect(0, 0, canvas.width, canvas.height);
+        drawOrbs();
         particles.forEach(p => { p.update(); p.draw(); });
         drawLines();
         requestAnimationFrame(animate);
