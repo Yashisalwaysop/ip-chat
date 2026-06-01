@@ -14,6 +14,7 @@ const RATE_LIMIT_WINDOW_MS = 3000;
 const RATE_LIMIT_MAX = 5;
 const ROOM_KEEPALIVE_MS = 60000; // 60 seconds after last user leaves
 const MESSAGE_HISTORY_LIMIT = 200;
+const MAX_IMAGE_BASE64_SIZE = 2800000; // ~2MB binary → ~2.7MB base64
 
 /* ============================================
    SERVER SETUP
@@ -26,11 +27,8 @@ const io = new Server(server, {
   pingInterval: 25000,
 });
 
-// Serve static files
-app.use(express.static(path.join(__dirname, 'public')));
-
 /* ============================================
-   ROUTES
+   ROUTES — defined before static so they take priority
    ============================================ */
 // Landing page
 app.get('/', (req, res) => {
@@ -42,15 +40,18 @@ app.get('/home', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
+// About page
+app.get('/about', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'about.html'));
+});
+
 // Room page
 app.get('/room/:roomId', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'room.html'));
 });
 
-// About page
-app.get('/about', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'about.html'));
-});
+// Serve static assets (CSS, JS, images) — AFTER routes
+app.use(express.static(path.join(__dirname, 'public')));
 
 /* ============================================
    IN-MEMORY STORAGE
@@ -326,6 +327,85 @@ io.on('connection', (socket) => {
       emoji: '❤️',
       count: msg.reactions['❤️'],
     });
+  });
+
+  /* ---------- SEND IMAGE ---------- */
+  socket.on('send-image', ({ imageData, mimeType }) => {
+    if (!currentRoom || !rooms[currentRoom]) return;
+
+    // Rate limit
+    if (checkRateLimit()) {
+      socket.emit('rate-limited', { message: 'You are sending messages too fast.' });
+      return;
+    }
+
+    // Validate
+    if (typeof imageData !== 'string' || !imageData) return;
+    if (typeof mimeType !== 'string' || !mimeType.startsWith('image/')) return;
+    if (imageData.length > MAX_IMAGE_BASE64_SIZE) {
+      socket.emit('error-msg', 'Image too large (max 2MB).');
+      return;
+    }
+
+    const room = rooms[currentRoom];
+    const userData = room.users.get(socket.id);
+    if (!userData) return;
+
+    const msg = {
+      id: Date.now().toString(36) + Math.random().toString(36).slice(2, 8),
+      type: 'image',
+      nickname: userData.nickname,
+      imageData,
+      mimeType,
+      timestamp: Date.now(),
+    };
+
+    room.messages.push(msg);
+    if (room.messages.length > MESSAGE_HISTORY_LIMIT) {
+      room.messages = room.messages.slice(-MESSAGE_HISTORY_LIMIT);
+    }
+
+    io.to(currentRoom).emit('new-image', msg);
+  });
+
+  /* ---------- SEND VOICE ---------- */
+  socket.on('send-voice', ({ audioData, duration }) => {
+    if (!currentRoom || !rooms[currentRoom]) return;
+
+    // Rate limit
+    if (checkRateLimit()) {
+      socket.emit('rate-limited', { message: 'You are sending messages too fast.' });
+      return;
+    }
+
+    // Validate
+    if (typeof audioData !== 'string' || !audioData) return;
+    if (typeof duration !== 'number' || duration <= 0) return;
+    // Cap voice at ~3MB base64
+    if (audioData.length > 4000000) {
+      socket.emit('error-msg', 'Voice note too large.');
+      return;
+    }
+
+    const room = rooms[currentRoom];
+    const userData = room.users.get(socket.id);
+    if (!userData) return;
+
+    const msg = {
+      id: Date.now().toString(36) + Math.random().toString(36).slice(2, 8),
+      type: 'voice',
+      nickname: userData.nickname,
+      audioData,
+      duration,
+      timestamp: Date.now(),
+    };
+
+    room.messages.push(msg);
+    if (room.messages.length > MESSAGE_HISTORY_LIMIT) {
+      room.messages = room.messages.slice(-MESSAGE_HISTORY_LIMIT);
+    }
+
+    io.to(currentRoom).emit('new-voice', msg);
   });
 
   /* ---------- DISCONNECT ---------- */
