@@ -26,6 +26,18 @@
   const typingUsers = new Map();
   let onlineUsers = [];
 
+  // Image upload state
+  let pendingImageFile = null;
+  let pendingImageBase64 = null;
+
+  // Voice recording state
+  let mediaRecorder = null;
+  let audioChunks = [];
+  let isRecording = false;
+  let recordingStartTime = 0;
+  let recordingTimerInterval = null;
+  let micSlideStartX = 0;
+
   // --- Detect which page we're on ---
   const isRoomPage = window.location.pathname.startsWith('/room/');
   const isHomePage = !isRoomPage;
@@ -115,6 +127,7 @@
 
   function setupSocketListeners() {
     socket.on('room-joined', (data) => {
+      window.history.pushState({}, '', `/room/${data.roomId}`);
       currentRoom = data.roomId;
       myNickname = data.nickname;
       onlineUsers = data.users || [];
@@ -134,6 +147,26 @@
       if (soundEnabled && msg.nickname !== myNickname) {
         playBeep();
       }
+    });
+
+    socket.on('new-image', (msg) => {
+      appendImageMessage(msg);
+      scrollToBottom();
+      if (!documentFocused && msg.nickname !== myNickname) {
+        unreadCount++;
+        document.title = `(${unreadCount}) ${originalTitle}`;
+      }
+      if (soundEnabled && msg.nickname !== myNickname) playBeep();
+    });
+
+    socket.on('new-voice', (msg) => {
+      appendVoiceMessage(msg);
+      scrollToBottom();
+      if (!documentFocused && msg.nickname !== myNickname) {
+        unreadCount++;
+        document.title = `(${unreadCount}) ${originalTitle}`;
+      }
+      if (soundEnabled && msg.nickname !== myNickname) playBeep();
     });
 
     socket.on('user-joined', (data) => {
@@ -264,7 +297,15 @@
 
     // Load history
     if (data.messages && data.messages.length > 0) {
-      data.messages.forEach(msg => appendMessage(msg, false));
+      data.messages.forEach(msg => {
+        if (msg.type === 'image') {
+          appendImageMessage(msg, false);
+        } else if (msg.type === 'voice') {
+          appendVoiceMessage(msg, false);
+        } else {
+          appendMessage(msg, false);
+        }
+      });
     }
 
     // Populate users panel
@@ -370,10 +411,22 @@
     const sendBtn = document.getElementById('send-btn');
     if (!messageInput) return;
 
-    const text = messageInput.value.trim();
-    if (!text || !socket || !currentRoom) return;
+    // If there's a pending image, send it
+    if (pendingImageBase64 && pendingImageFile && socket && currentRoom) {
+      socket.emit('send-image', {
+        imageData: pendingImageBase64,
+        mimeType: pendingImageFile.type,
+      });
+      clearImagePreview();
+    }
 
-    socket.emit('send-message', { message: text });
+    const text = messageInput.value.trim();
+    if (text && socket && currentRoom) {
+      socket.emit('send-message', { message: text });
+    }
+
+    if (!text && !pendingImageBase64) return; // nothing to send at all
+
     messageInput.value = '';
     messageInput.style.height = 'auto';
     if (sendBtn) sendBtn.disabled = true;
@@ -544,6 +597,302 @@
   });
 
   // ============================================
+  // IMAGE UPLOAD FUNCTIONS
+  // ============================================
+
+  function appendImageMessage(msg, animate = true) {
+    const messagesEl = document.getElementById('messages');
+    if (!messagesEl) return;
+
+    const isSelf = msg.nickname === myNickname;
+    const div = document.createElement('div');
+    div.className = `message-bubble${isSelf ? ' self' : ''}`;
+    div.setAttribute('data-msg-id', msg.id);
+    if (!animate) div.style.animation = 'none';
+
+    const time = new Date(msg.timestamp);
+    const timeStr = time.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+    const headerDiv = document.createElement('div');
+    headerDiv.className = 'msg-header';
+    headerDiv.innerHTML = `
+      <span class="msg-nickname">${escapeHtml(msg.nickname)}</span>
+      <span class="msg-time">${timeStr}</span>
+    `;
+    div.appendChild(headerDiv);
+
+    const img = document.createElement('img');
+    img.className = 'msg-image';
+    img.src = `data:${msg.mimeType};base64,${msg.imageData}`;
+    img.alt = 'Shared image';
+    img.addEventListener('click', () => openLightbox(img.src));
+    div.appendChild(img);
+
+    messagesEl.appendChild(div);
+  }
+
+  function clearImagePreview() {
+    pendingImageFile = null;
+    pendingImageBase64 = null;
+    const previewArea = document.getElementById('image-preview-area');
+    const previewThumb = document.getElementById('image-preview-thumb');
+    const previewName = document.getElementById('image-preview-name');
+    if (previewArea) previewArea.classList.remove('active');
+    if (previewThumb) previewThumb.src = '';
+    if (previewName) previewName.textContent = '';
+    updateSendBtnState();
+  }
+
+  function handleImageSelect(file) {
+    if (!file || !file.type.startsWith('image/')) return;
+
+    // Check file size (2MB = 2 * 1024 * 1024)
+    if (file.size > 2 * 1024 * 1024) {
+      showToast('Image too large (max 2MB)');
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const base64Full = e.target.result; // data:image/...;base64,XXXX
+      const base64Data = base64Full.split(',')[1]; // just the base64 part
+
+      pendingImageFile = file;
+      pendingImageBase64 = base64Data;
+
+      // Show preview
+      const previewArea = document.getElementById('image-preview-area');
+      const previewThumb = document.getElementById('image-preview-thumb');
+      const previewName = document.getElementById('image-preview-name');
+      if (previewArea) previewArea.classList.add('active');
+      if (previewThumb) previewThumb.src = base64Full;
+      if (previewName) previewName.textContent = file.name;
+      updateSendBtnState();
+    };
+    reader.readAsDataURL(file);
+  }
+
+  function updateSendBtnState() {
+    const sendBtn = document.getElementById('send-btn');
+    const messageInput = document.getElementById('message-input');
+    if (!sendBtn) return;
+    const hasText = messageInput && messageInput.value.trim();
+    sendBtn.disabled = !hasText && !pendingImageBase64;
+  }
+
+  // ============================================
+  // LIGHTBOX
+  // ============================================
+
+  function openLightbox(src) {
+    const lightbox = document.getElementById('lightbox');
+    const lightboxImg = document.getElementById('lightbox-img');
+    if (!lightbox || !lightboxImg) return;
+    lightboxImg.src = src;
+    lightbox.classList.add('active');
+  }
+
+  function closeLightbox() {
+    const lightbox = document.getElementById('lightbox');
+    if (lightbox) lightbox.classList.remove('active');
+  }
+
+  // ============================================
+  // VOICE RECORDING FUNCTIONS
+  // ============================================
+
+  function formatDuration(seconds) {
+    const m = Math.floor(seconds / 60);
+    const s = Math.floor(seconds % 60);
+    return `${m}:${s.toString().padStart(2, '0')}`;
+  }
+
+  function appendVoiceMessage(msg, animate = true) {
+    const messagesEl = document.getElementById('messages');
+    if (!messagesEl) return;
+
+    const isSelf = msg.nickname === myNickname;
+    const div = document.createElement('div');
+    div.className = `message-bubble${isSelf ? ' self' : ''}`;
+    div.setAttribute('data-msg-id', msg.id);
+    if (!animate) div.style.animation = 'none';
+
+    const time = new Date(msg.timestamp);
+    const timeStr = time.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+    const headerDiv = document.createElement('div');
+    headerDiv.className = 'msg-header';
+    headerDiv.innerHTML = `
+      <span class="msg-nickname">${escapeHtml(msg.nickname)}</span>
+      <span class="msg-time">${timeStr}</span>
+    `;
+    div.appendChild(headerDiv);
+
+    // Voice player container
+    const voiceBubble = document.createElement('div');
+    voiceBubble.className = 'voice-bubble';
+
+    // Play/Pause button
+    const playBtn = document.createElement('button');
+    playBtn.className = 'voice-play-btn';
+    playBtn.innerHTML = `<svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor"><path d="M4 2l10 6-10 6V2z"/></svg>`;
+
+    // Track area
+    const trackDiv = document.createElement('div');
+    trackDiv.className = 'voice-track';
+
+    const progressBar = document.createElement('div');
+    progressBar.className = 'voice-progress-bar';
+    const progressFill = document.createElement('div');
+    progressFill.className = 'voice-progress-fill';
+    progressBar.appendChild(progressFill);
+
+    const durationSpan = document.createElement('span');
+    durationSpan.className = 'voice-duration';
+    durationSpan.textContent = formatDuration(msg.duration);
+
+    trackDiv.appendChild(progressBar);
+    trackDiv.appendChild(durationSpan);
+
+    voiceBubble.appendChild(playBtn);
+    voiceBubble.appendChild(trackDiv);
+
+    // Hidden audio element
+    const audio = document.createElement('audio');
+    audio.src = `data:audio/webm;base64,${msg.audioData}`;
+    audio.preload = 'metadata';
+
+    let playing = false;
+
+    playBtn.addEventListener('click', () => {
+      if (playing) {
+        audio.pause();
+        playing = false;
+        playBtn.innerHTML = `<svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor"><path d="M4 2l10 6-10 6V2z"/></svg>`;
+      } else {
+        audio.play().catch(() => {});
+        playing = true;
+        playBtn.innerHTML = `<svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor"><rect x="3" y="2" width="4" height="12" rx="1"/><rect x="9" y="2" width="4" height="12" rx="1"/></svg>`;
+      }
+    });
+
+    audio.addEventListener('timeupdate', () => {
+      if (audio.duration) {
+        const pct = (audio.currentTime / audio.duration) * 100;
+        progressFill.style.width = pct + '%';
+        durationSpan.textContent = formatDuration(audio.currentTime);
+      }
+    });
+
+    audio.addEventListener('ended', () => {
+      playing = false;
+      playBtn.innerHTML = `<svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor"><path d="M4 2l10 6-10 6V2z"/></svg>`;
+      progressFill.style.width = '0%';
+      durationSpan.textContent = formatDuration(msg.duration);
+    });
+
+    // Seek on click
+    progressBar.addEventListener('click', (e) => {
+      if (!audio.duration) return;
+      const rect = progressBar.getBoundingClientRect();
+      const pct = (e.clientX - rect.left) / rect.width;
+      audio.currentTime = pct * audio.duration;
+    });
+
+    div.appendChild(voiceBubble);
+    div.appendChild(audio);
+    messagesEl.appendChild(div);
+  }
+
+  function startRecording() {
+    if (isRecording) return;
+
+    navigator.mediaDevices.getUserMedia({ audio: true })
+      .then(stream => {
+        isRecording = true;
+        audioChunks = [];
+        recordingStartTime = Date.now();
+
+        const micBtn = document.getElementById('mic-btn');
+        const recIndicator = document.getElementById('recording-indicator');
+        const recTimer = document.getElementById('recording-timer');
+
+        if (micBtn) micBtn.classList.add('recording');
+        if (recIndicator) recIndicator.classList.add('active');
+
+        // Start timer display
+        if (recTimer) recTimer.textContent = '0:00';
+        recordingTimerInterval = setInterval(() => {
+          const elapsed = Math.floor((Date.now() - recordingStartTime) / 1000);
+          if (recTimer) recTimer.textContent = formatDuration(elapsed);
+        }, 500);
+
+        mediaRecorder = new MediaRecorder(stream, {
+          mimeType: MediaRecorder.isTypeSupported('audio/webm') ? 'audio/webm' : ''
+        });
+
+        mediaRecorder.ondataavailable = (e) => {
+          if (e.data.size > 0) audioChunks.push(e.data);
+        };
+
+        mediaRecorder.onstop = () => {
+          // Stop all tracks
+          stream.getTracks().forEach(t => t.stop());
+
+          const micBtn2 = document.getElementById('mic-btn');
+          const recIndicator2 = document.getElementById('recording-indicator');
+          if (micBtn2) micBtn2.classList.remove('recording');
+          if (recIndicator2) recIndicator2.classList.remove('active');
+          clearInterval(recordingTimerInterval);
+
+          // If recording was cancelled, don't send
+          if (!isRecording) return;
+          isRecording = false;
+
+          const duration = (Date.now() - recordingStartTime) / 1000;
+          if (duration < 0.5) return; // too short
+
+          const blob = new Blob(audioChunks, { type: 'audio/webm' });
+          const reader = new FileReader();
+          reader.onload = () => {
+            const base64 = reader.result.split(',')[1];
+            if (socket && currentRoom) {
+              socket.emit('send-voice', { audioData: base64, duration: Math.round(duration) });
+            }
+          };
+          reader.readAsDataURL(blob);
+        };
+
+        mediaRecorder.start();
+      })
+      .catch(() => {
+        showToast('Microphone access denied');
+      });
+  }
+
+  function stopRecording() {
+    if (!mediaRecorder || mediaRecorder.state === 'inactive') {
+      isRecording = false;
+      return;
+    }
+    // isRecording stays true so onstop sends the data
+    mediaRecorder.stop();
+  }
+
+  function cancelRecording() {
+    isRecording = false; // flag so onstop won't send
+    if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+      mediaRecorder.stop();
+    }
+    const micBtn = document.getElementById('mic-btn');
+    const recIndicator = document.getElementById('recording-indicator');
+    if (micBtn) micBtn.classList.remove('recording');
+    if (recIndicator) recIndicator.classList.remove('active');
+    clearInterval(recordingTimerInterval);
+    showToast('Recording cancelled');
+  }
+
+  // ============================================
   // SHARED CHAT UI BINDING
   // (called once chat elements exist on screen)
   // ============================================
@@ -572,9 +921,7 @@
         messageInput.style.height = 'auto';
         messageInput.style.height = Math.min(messageInput.scrollHeight, 120) + 'px';
 
-        const sendBtn2 = document.getElementById('send-btn');
-        if (sendBtn2) sendBtn2.disabled = !messageInput.value.trim();
-
+        updateSendBtnState();
         updateCharCounter();
 
         if (!isTyping && messageInput.value.trim()) {
@@ -606,8 +953,8 @@
     if (copyBtn) {
       copyBtn.addEventListener('click', () => {
         if (!currentRoom) return;
-        navigator.clipboard.writeText(currentRoom).then(() => {
-          showToast('Room ID copied to clipboard!');
+        navigator.clipboard.writeText(window.location.href).then(() => {
+          showToast('Link copied!');
         }).catch(() => {
           showToast('Failed to copy');
         });
@@ -652,6 +999,102 @@
           if (muteIconOff) muteIconOff.style.display = 'block';
           if (muteIconOn) muteIconOn.style.display = 'none';
           muteToggleBtn.classList.remove('active');
+        }
+      });
+    }
+
+    // --- Image Upload Bindings ---
+    const attachBtn = document.getElementById('attach-btn');
+    const imageFileInput = document.getElementById('image-file-input');
+    const imagePreviewCancel = document.getElementById('image-preview-cancel');
+
+    if (attachBtn && imageFileInput) {
+      attachBtn.addEventListener('click', () => {
+        imageFileInput.click();
+      });
+
+      imageFileInput.addEventListener('change', () => {
+        const file = imageFileInput.files[0];
+        if (file) handleImageSelect(file);
+        imageFileInput.value = ''; // reset so same file can be re-selected
+      });
+    }
+
+    if (imagePreviewCancel) {
+      imagePreviewCancel.addEventListener('click', clearImagePreview);
+    }
+
+    // --- Lightbox Bindings ---
+    const lightbox = document.getElementById('lightbox');
+    const lightboxClose = document.getElementById('lightbox-close');
+
+    if (lightbox) {
+      lightbox.addEventListener('click', (e) => {
+        // Close if clicked on the background, not the image
+        if (e.target === lightbox) closeLightbox();
+      });
+    }
+    if (lightboxClose) {
+      lightboxClose.addEventListener('click', closeLightbox);
+    }
+
+    // Escape key closes lightbox
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') closeLightbox();
+    });
+
+    // --- Voice Recording Bindings ---
+    const micBtn = document.getElementById('mic-btn');
+    if (micBtn) {
+      micBtn.addEventListener('click', () => {
+        if (isRecording) {
+          stopRecording();
+        } else {
+          startRecording();
+        }
+      });
+
+      // Slide-to-cancel: track touch start, if user slides left > 80px, cancel
+      micBtn.addEventListener('touchstart', (e) => {
+        if (isRecording) {
+          micSlideStartX = e.touches[0].clientX;
+        }
+      }, { passive: true });
+
+      micBtn.addEventListener('touchmove', (e) => {
+        if (isRecording && micSlideStartX > 0) {
+          const dx = micSlideStartX - e.touches[0].clientX;
+          if (dx > 80) {
+            cancelRecording();
+            micSlideStartX = 0;
+          }
+        }
+      }, { passive: true });
+
+      micBtn.addEventListener('touchend', () => {
+        micSlideStartX = 0;
+      }, { passive: true });
+
+      // Mouse-based slide cancel for desktop
+      micBtn.addEventListener('mousedown', (e) => {
+        if (isRecording) {
+          micSlideStartX = e.clientX;
+          const onMouseMove = (me) => {
+            const dx = micSlideStartX - me.clientX;
+            if (dx > 80) {
+              cancelRecording();
+              micSlideStartX = 0;
+              document.removeEventListener('mousemove', onMouseMove);
+              document.removeEventListener('mouseup', onMouseUp);
+            }
+          };
+          const onMouseUp = () => {
+            micSlideStartX = 0;
+            document.removeEventListener('mousemove', onMouseMove);
+            document.removeEventListener('mouseup', onMouseUp);
+          };
+          document.addEventListener('mousemove', onMouseMove);
+          document.addEventListener('mouseup', onMouseUp);
         }
       });
     }
